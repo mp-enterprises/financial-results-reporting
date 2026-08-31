@@ -1,0 +1,1068 @@
+<title>Runbook Rozliczeń</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+/* ===== Tokeny: pełna paleta jasna na gołym :root ===== */
+:root {
+  --paper:      #f2f4f7;
+  --surface:    #ffffff;
+  --surface-2:  #e9edf3;
+  --ink:        #161a21;
+  --ink-2:      #3d4655;
+  --muted:      #626e80;
+  --line:       #d6dde7;
+  --line-soft:  #e5eaf1;
+
+  /* atrament księgowy + czerwień korekty — z języka dokumentu rozliczeniowego */
+  --accent:     #27508c;
+  --accent-2:   #3f6fb5;
+  --accent-wash:#e6ecf6;
+  --korekta:    #a83d2b;
+  --korekta-wash:#f8e9e6;
+  --zgoda:      #26694c;
+  --zgoda-wash: #e4f0ea;
+  --uwaga:      #8a6212;
+  --uwaga-wash: #f7efdc;
+
+  --code-bg:    #171c25;
+  --code-ink:   #dbe3ef;
+  --code-line:  #2c3542;
+  --badge-ink:  #ffffff;
+
+  --r: 6px;
+  --step-size: 30px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #0f1218;
+    --surface:    #171b23;
+    --surface-2:  #1e242e;
+    --ink:        #e2e7ef;
+    --ink-2:      #b6c0ce;
+    --muted:      #8794a6;
+    --line:       #2b323e;
+    --line-soft:  #232a35;
+
+    --accent:     #7fa5dd;
+    --accent-2:   #9dbcea;
+    --accent-wash:#1a2534;
+    --korekta:    #e08d7c;
+    --korekta-wash:#2c1d1a;
+    --zgoda:      #79c2a1;
+    --zgoda-wash: #14251d;
+    --uwaga:      #d7ad5c;
+    --uwaga-wash: #2a2213;
+
+    --code-bg:    #10141b;
+    --code-ink:   #cfd8e6;
+    --code-line:  #262e3a;
+    --badge-ink:  #0f1218;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:      #0f1218;
+  --surface:    #171b23;
+  --surface-2:  #1e242e;
+  --ink:        #e2e7ef;
+  --ink-2:      #b6c0ce;
+  --muted:      #8794a6;
+  --line:       #2b323e;
+  --line-soft:  #232a35;
+
+  --accent:     #7fa5dd;
+  --accent-2:   #9dbcea;
+  --accent-wash:#1a2534;
+  --korekta:    #e08d7c;
+  --korekta-wash:#2c1d1a;
+  --zgoda:      #79c2a1;
+  --zgoda-wash: #14251d;
+  --uwaga:      #d7ad5c;
+  --uwaga-wash: #2a2213;
+
+  --code-bg:    #10141b;
+  --code-ink:   #cfd8e6;
+  --code-line:  #262e3a;
+  --badge-ink:  #0f1218;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Szkielet ===== */
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .rail { display: none; }
+}
+
+/* ===== Nagłówek ===== */
+.hero {
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--line);
+  padding: 56px 0 32px;
+  margin-bottom: 48px;
+}
+.eyebrow {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 14px;
+}
+h1 {
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(30px, 4.4vw, 44px);
+  line-height: 1.12;
+  letter-spacing: -.015em;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.lede {
+  font-size: 17px;
+  color: var(--ink-2);
+  max-width: 62ch;
+  margin: 0 0 28px;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.meta b { color: var(--ink-2); font-weight: 500; }
+
+/* ===== Lewa szyna ===== */
+.rail { position: sticky; top: 28px; }
+.rail-title {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rail a {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  padding: 6px 8px 6px 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: var(--r);
+  transition: color .12s, background .12s;
+}
+.rail a:hover { color: var(--accent); background: var(--accent-wash); }
+.rail a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rail .n {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== Kroki ===== */
+.step { position: relative; padding-bottom: 44px; }
+.step:not(:last-of-type)::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--step-size) / 2 - 1px);
+  top: var(--step-size);
+  bottom: 8px;
+  width: 2px;
+  background: var(--line-soft);
+}
+.step-head {
+  display: grid;
+  grid-template-columns: var(--step-size) 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+.badge {
+  width: var(--step-size);
+  height: var(--step-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--badge-ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+h2 {
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-weight: 600;
+  font-size: 23px;
+  line-height: 1.25;
+  margin: 2px 0 0;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.step-body { padding-left: calc(var(--step-size) + 16px); }
+@media (max-width: 640px) { .step-body { padding-left: 0; } }
+
+h3 {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  margin: 28px 0 10px;
+  color: var(--ink);
+}
+p { margin: 0 0 14px; max-width: 68ch; }
+a { color: var(--accent); }
+ul, ol.body-list { margin: 0 0 16px; padding-left: 20px; max-width: 68ch; }
+li { margin-bottom: 6px; }
+strong { font-weight: 600; }
+
+code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .875em;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ===== Bloki kodu ===== */
+.code { margin: 0 0 18px; border-radius: var(--r); overflow: hidden; border: 1px solid var(--code-line); }
+.code-label {
+  background: var(--code-line);
+  color: var(--code-ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  padding: 6px 14px;
+}
+.code pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.code pre code { background: none; border: 0; padding: 0; font-size: inherit; color: inherit; }
+.cm { color: #7f8ea3; }
+
+/* ===== Wyróżnienia ===== */
+.note {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-wash);
+  padding: 13px 16px;
+  border-radius: 0 var(--r) var(--r) 0;
+  margin: 0 0 18px;
+  max-width: 68ch;
+}
+.note.warn { border-left-color: var(--korekta); background: var(--korekta-wash); }
+.note.ok   { border-left-color: var(--zgoda);   background: var(--zgoda-wash); }
+.note.tip  { border-left-color: var(--uwaga);   background: var(--uwaga-wash); }
+.note p:last-child { margin-bottom: 0; }
+.note-label {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 5px;
+  color: var(--accent);
+}
+.note.warn .note-label { color: var(--korekta); }
+.note.ok   .note-label { color: var(--zgoda); }
+.note.tip  .note-label { color: var(--uwaga); }
+
+/* ===== Tabele ===== */
+.table-scroll { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: 0; }
+td.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td code { white-space: nowrap; }
+
+.pill {
+  display: inline-block;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .05em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.pill.ok   { background: var(--zgoda-wash);   color: var(--zgoda); }
+.pill.bad  { background: var(--korekta-wash); color: var(--korekta); }
+.pill.warn { background: var(--uwaga-wash);   color: var(--uwaga); }
+
+/* ===== Karty ===== */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 0 0 22px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 15px 17px;
+}
+.card h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: "IBM Plex Sans", sans-serif;
+}
+.card p { font-size: 13px; color: var(--muted); margin: 0; }
+.card .stat {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 25px;
+  font-weight: 500;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  display: block;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+/* ===== Diagram ===== */
+.diagram {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 22px;
+  margin: 0 0 24px;
+  overflow-x: auto;
+}
+.diagram svg { display: block; min-width: 620px; width: 100%; height: auto; }
+
+/* ===== Stopka sekcji ===== */
+.section-rule {
+  grid-column: 1 / -1;
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 8px 0 40px;
+}
+.closing {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+  padding: 24px 26px;
+  margin-top: 8px;
+}
+.closing h2 { font-size: 20px; margin-top: 0; }
+</style>
+
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">Runbook wdrożeniowy · Coolify + n8n + dbt + Metabase</p>
+    <h1>System rozliczeń partnerskich</h1>
+    <p class="lede">
+      Kompletna instrukcja uruchomienia: od pustego serwera Coolify do działających
+      dashboardów, które co miesiąc same się aktualizują po odebraniu maila z rozliczeniem.
+      Kroki wykonuj po kolei — każdy kończy się weryfikacją, której wynik warunkuje następny.
+    </p>
+    <div class="meta">
+      <span><b>Czas wdrożenia:</b> 60–90 min</span>
+      <span><b>Partner:</b> ZZMP1</span>
+      <span><b>Baza:</b> PostgreSQL 16</span>
+      <span><b>Stan kodu:</b> zweryfikowany na danych z 2026-07</span>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Kroki wdrożenia">
+    <p class="rail-title">Kroki</p>
+    <ol>
+      <li><a href="#k0"><span class="n">00</span><span>Co budujemy</span></a></li>
+      <li><a href="#k1"><span class="n">01</span><span>Repozytorium</span></a></li>
+      <li><a href="#k2"><span class="n">02</span><span>Sekrety</span></a></li>
+      <li><a href="#k3"><span class="n">03</span><span>Zasób w Coolify</span></a></li>
+      <li><a href="#k4"><span class="n">04</span><span>Pierwszy start</span></a></li>
+      <li><a href="#k5"><span class="n">05</span><span>Rola dla Metabase</span></a></li>
+      <li><a href="#k6"><span class="n">06</span><span>Dashboardy</span></a></li>
+      <li><a href="#k7"><span class="n">07</span><span>Workflow n8n</span></a></li>
+      <li><a href="#k8"><span class="n">08</span><span>Test i historia</span></a></li>
+      <li><a href="#k9"><span class="n">09</span><span>Utrzymanie</span></a></li>
+      <li><a href="#k10"><span class="n">10</span><span>Gdy coś nie działa</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ============ 00 ============ -->
+    <section class="step" id="k0">
+      <div class="step-head">
+        <span class="badge">00</span>
+        <h2>Co budujemy i dlaczego tak</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Raz w miesiącu przychodzi mail z jednym załącznikiem Excel. Plik ma pięć arkuszy,
+          dwa oddzielne rozliczenia (kanał główny i Amazon przez MJ), około 300 pozycji
+          sprzedaży i 1100 pozycji magazynowych. System ma to odebrać, sprawdzić, zapisać
+          i pokazać — bez ręcznej pracy i bez ryzyka policzenia tego samego dwa razy.
+        </p>
+
+        <div class="diagram">
+          <svg viewBox="0 0 760 220" role="img" aria-label="Przepływ danych: mail trafia do n8n, n8n przekazuje plik do workera, worker zapisuje do Postgresa w trzech warstwach, Metabase czyta warstwę mart">
+            <defs>
+              <marker id="strz" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+                <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"/>
+              </marker>
+            </defs>
+            <g fill="none" stroke="currentColor" color="var(--muted)" stroke-width="1.5" marker-end="url(#strz)">
+              <path d="M116 46 H186"/>
+              <path d="M290 46 H360"/>
+              <path d="M436 66 V104"/>
+              <path d="M436 178 H520"/>
+              <path d="M188 92 H186 Q166 92 166 72 V56"/>
+            </g>
+
+            <g font-family="IBM Plex Mono, monospace" font-size="11">
+              <g>
+                <rect x="16" y="26" width="100" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="66" y="43" text-anchor="middle" fill="var(--ink)" font-size="11.5">Mail</text>
+                <text x="66" y="57" text-anchor="middle" fill="var(--muted)" font-size="10">.xlsx</text>
+              </g>
+              <g>
+                <rect x="188" y="26" width="102" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="239" y="43" text-anchor="middle" fill="var(--ink)" font-size="11.5">n8n</text>
+                <text x="239" y="57" text-anchor="middle" fill="var(--muted)" font-size="10">IMAP</text>
+              </g>
+              <g>
+                <rect x="70" y="76" width="118" height="32" rx="5" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>
+                <text x="129" y="96" text-anchor="middle" fill="var(--muted)" font-size="10">upload ręczny / CLI</text>
+              </g>
+              <g>
+                <rect x="362" y="20" width="148" height="52" rx="5" fill="var(--accent-wash)" stroke="var(--accent)"/>
+                <text x="436" y="39" text-anchor="middle" fill="var(--ink)" font-size="11.5">worker ingest</text>
+                <text x="436" y="55" text-anchor="middle" fill="var(--muted)" font-size="9.5">SHA-256 · parser · dbt</text>
+              </g>
+              <g>
+                <rect x="336" y="104" width="200" height="74" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="436" y="122" text-anchor="middle" fill="var(--ink)" font-size="11.5">PostgreSQL</text>
+                <text x="436" y="140" text-anchor="middle" fill="var(--muted)" font-size="9.5">raw — niezmienny zrzut</text>
+                <text x="436" y="154" text-anchor="middle" fill="var(--muted)" font-size="9.5">core — model relacyjny</text>
+                <text x="436" y="168" text-anchor="middle" fill="var(--muted)" font-size="9.5">mart — tabele analityczne</text>
+              </g>
+              <g>
+                <rect x="524" y="158" width="112" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="580" y="175" text-anchor="middle" fill="var(--ink)" font-size="11.5">Metabase</text>
+                <text x="580" y="189" text-anchor="middle" fill="var(--muted)" font-size="10">tylko odczyt</text>
+              </g>
+            </g>
+          </svg>
+        </div>
+
+        <h3>Cztery decyzje projektowe, które warto znać</h3>
+        <div class="cards">
+          <div class="card">
+            <h4>Trzy warstwy w bazie</h4>
+            <p>Surowy zrzut arkuszy w JSONB zostaje na zawsze. Jeśli parser kiedyś źle zinterpretuje kolumnę, dane przeliczysz bez proszenia nadawcy o pliki.</p>
+          </div>
+          <div class="card">
+            <h4>Idempotencja na trzech poziomach</h4>
+            <p>SHA-256 pliku jako klucz unikalny, klucz naturalny okresu w bazie, transakcyjne DELETE + INSERT pozycji.</p>
+          </div>
+          <div class="card">
+            <h4>Korekty tworzą rewizje</h4>
+            <p>Poprawiony plik za ten sam miesiąc nie nadpisuje danych — powstaje rewizja 2, stara zostaje w audycie.</p>
+          </div>
+          <div class="card">
+            <h4>Kwoty są sprawdzane</h4>
+            <p>Sześć równań rozliczenia przeliczanych niezależnie po każdym załadowaniu. Różnica powyżej grosza to alert.</p>
+          </div>
+        </div>
+
+        <div class="note ok">
+          <span class="note-label">Stan weryfikacji</span>
+          <p>
+            Cały łańcuch — schemat, ładowanie, wszystkie modele i 29 zapytań dashboardowych —
+            został uruchomiony na PostgreSQL 16 na Twoim pliku za 2026-07. Kwoty w bazie
+            zgadzają się z plikiem co do grosza: 60 041,44 zł do zapłaty w kanale głównym,
+            29 083,15 zł zarobku, 1 485,61 zł w kanale MJ, 269 484,89 zł wartości magazynu.
+            13 z 13 testów parsera zdanych.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 01 ============ -->
+    <section class="step" id="k1">
+      <div class="step-head">
+        <span class="badge">01</span>
+        <h2>Umieść kod w repozytorium GitHub</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Rozpakuj dostarczone archiwum i wypchnij je do prywatnego repozytorium.
+          Coolify będzie z niego budował obraz workera przy każdym wdrożeniu.
+        </p>
+        <div class="code">
+          <div class="code-label">terminal · lokalnie</div>
+          <pre><code>unzip rozliczenia-system.zip &amp;&amp; cd rozliczenia
+
+git init
+git add .
+git commit -m "System rozliczeń partnerskich"
+
+<span class="cm"># utwórz PRYWATNE repozytorium na GitHub, potem:</span>
+git remote add origin git@github.com:TWOJA-NAZWA/rozliczenia.git
+git branch -M main
+git push -u origin main</code></pre>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Zanim wypchniesz</span>
+          <p>
+            Upewnij się, że plik <code>.env</code> nie trafia do repozytorium — jest już
+            w <code>.gitignore</code>, ale sprawdź to poleceniem <code>git status</code>.
+            Plik <code>sample/</code> zawiera prawdziwe dane finansowe, więc repozytorium
+            musi być prywatne. Jeśli wolisz, usuń ten katalog przed pierwszym commitem
+            (testy pominą się same, gdy pliku nie ma).
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 ============ -->
+    <section class="step" id="k2">
+      <div class="step-head">
+        <span class="badge">02</span>
+        <h2>Wygeneruj sekrety</h2>
+      </div>
+      <div class="step-body">
+        <p>Trzy hasła i dwa klucze. Wygeneruj je teraz i zapisz w menedżerze haseł — będą potrzebne w kroku 03.</p>
+        <div class="code">
+          <div class="code-label">terminal · generowanie sekretów</div>
+          <pre><code>echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
+echo "INGEST_API_KEY=$(openssl rand -hex 32)"
+echo "ADMIN_PASSWORD=$(openssl rand -hex 16)"
+echo "N8N_ENCRYPTION_KEY=$(openssl rand -hex 32)"
+echo "METABASE_RO_PASSWORD=$(openssl rand -hex 16)"</code></pre>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Zmienna</th><th>Do czego służy</th><th>Konsekwencja utraty</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>POSTGRES_PASSWORD</code></td><td>dostęp do bazy dla workera, Metabase i n8n</td><td>utrata dostępu do wszystkich danych</td></tr>
+              <tr><td><code>INGEST_API_KEY</code></td><td>uwierzytelnia n8n w API workera</td><td>workflow przestaje ładować pliki</td></tr>
+              <tr><td><code>ADMIN_PASSWORD</code></td><td>formularz ręcznego uploadu i podgląd stanu</td><td>brak dostępu do panelu ręcznego</td></tr>
+              <tr><td><code>N8N_ENCRYPTION_KEY</code></td><td>szyfruje zapisane hasła do skrzynki i SMTP</td><td><strong>n8n traci wszystkie credentials bezpowrotnie</strong></td></tr>
+              <tr><td><code>METABASE_RO_PASSWORD</code></td><td>konto tylko-do-odczytu dla dashboardów</td><td>trzeba przepiąć połączenie w Metabase</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Klucz szyfrujący n8n</span>
+          <p>
+            <code>N8N_ENCRYPTION_KEY</code> ustaw raz i nigdy nie zmieniaj. Zmiana sprawia,
+            że n8n nie odszyfruje zapisanych haseł do skrzynki pocztowej i będzie trzeba
+            skonfigurować je od nowa.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 ============ -->
+    <section class="step" id="k3">
+      <div class="step-head">
+        <span class="badge">03</span>
+        <h2>Utwórz zasób w Coolify</h2>
+      </div>
+      <div class="step-body">
+        <ol class="body-list">
+          <li>W panelu Coolify wybierz projekt (lub utwórz nowy) i kliknij <strong>+ New Resource</strong>.</li>
+          <li>Wybierz <strong>Docker Compose</strong> jako typ zasobu.</li>
+          <li>Wskaż źródło: <strong>Private Repository (with GitHub App)</strong> i wybierz repozytorium z kroku 01.</li>
+          <li>Branch: <code>main</code>. Ścieżka do pliku Compose: <code>/docker-compose.yml</code>.</li>
+          <li>Zapisz — <strong>jeszcze nie wdrażaj</strong>.</li>
+        </ol>
+
+        <h3>Zmienne środowiskowe</h3>
+        <p>Przejdź do zakładki <strong>Environment Variables</strong> i wklej poniższe, podstawiając sekrety z kroku 02 i własne domeny.</p>
+        <div class="code">
+          <div class="code-label">Coolify · Environment Variables</div>
+          <pre><code>POSTGRES_DB=settlements
+POSTGRES_USER=settlements
+POSTGRES_PASSWORD=&lt;z kroku 02&gt;
+METABASE_DB=metabase
+N8N_DB=n8n
+
+INGEST_API_KEY=&lt;z kroku 02&gt;
+ADMIN_USER=admin
+ADMIN_PASSWORD=&lt;z kroku 02&gt;
+RECON_TOLERANCE=0.01
+MAX_UPLOAD_MB=50
+
+N8N_ENCRYPTION_KEY=&lt;z kroku 02&gt;
+
+INGEST_FQDN=rozliczenia.twojadomena.pl
+METABASE_FQDN=bi.twojadomena.pl
+N8N_FQDN=n8n.twojadomena.pl
+
+BACKUP_RETENTION_DAYS=30</code></pre>
+        </div>
+
+        <h3>Domeny</h3>
+        <p>
+          W zakładce <strong>Domains</strong> przypisz adresy do trzech usług. Coolify sam
+          wystawi certyfikaty Let's Encrypt. Usługi <code>postgres</code> i <code>backup</code>
+          zostaw bez domeny — mają być dostępne wyłącznie wewnątrz sieci Dockera.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Usługa</th><th>Domena</th><th>Dostęp</th></tr></thead>
+            <tbody>
+              <tr><td><code>metabase</code></td><td>bi.twojadomena.pl</td><td>logowanie Metabase</td></tr>
+              <tr><td><code>ingest</code></td><td>rozliczenia.twojadomena.pl</td><td>Basic Auth + klucz API</td></tr>
+              <tr><td><code>n8n</code></td><td>n8n.twojadomena.pl</td><td>logowanie n8n</td></tr>
+              <tr><td><code>postgres</code></td><td>—</td><td>tylko sieć wewnętrzna</td></tr>
+              <tr><td><code>backup</code></td><td>—</td><td>tylko sieć wewnętrzna</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note tip">
+          <span class="note-label">Masz już n8n na Coolify</span>
+          <p>
+            Usuń usługę <code>n8n</code> z <code>docker-compose.yml</code> i zamiast tego
+            podłącz istniejącą instancję do sieci tego stacku (Coolify: <em>Connect to
+            Predefined Network</em>). Adres workera w workflow pozostaje bez zmian:
+            <code>http://ingest:8000/ingest</code>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 04 ============ -->
+    <section class="step" id="k4">
+      <div class="step-head">
+        <span class="badge">04</span>
+        <h2>Pierwsze uruchomienie i weryfikacja</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Kliknij <strong>Deploy</strong>. Pierwsze budowanie trwa 3–5 minut (instalacja
+          dbt i zależności Pythona). Migracje bazy wykonują się automatycznie przy starcie
+          workera — nie trzeba ich uruchamiać ręcznie.
+        </p>
+        <div class="code">
+          <div class="code-label">terminal · weryfikacja</div>
+          <pre><code><span class="cm"># 1. Worker odpowiada i widzi bazę</span>
+curl -s https://rozliczenia.twojadomena.pl/healthz
+<span class="cm"># oczekiwane: {"status":"ok"}</span>
+
+<span class="cm"># 2. Schemat został utworzony (w terminalu Coolify, usługa postgres)</span>
+psql -U settlements -d settlements -c "\dt core.*"
+<span class="cm"># oczekiwane: partner, period, channel, settlement, product,</span>
+<span class="cm">#            sales_line, stock_snapshot, settlement_note</span>
+
+<span class="cm"># 3. Panel ręcznego uploadu działa</span>
+<span class="cm"># otwórz https://rozliczenia.twojadomena.pl/ i zaloguj się (admin + ADMIN_PASSWORD)</span></code></pre>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Jeśli healthz zwraca 503</span>
+          <p>
+            Worker wystartował szybciej niż baza. Sprawdź logi usługi <code>postgres</code>
+            i odczekaj minutę — Docker restartuje kontener automatycznie. Jeśli błąd trwa,
+            zwykle oznacza literówkę w <code>POSTGRES_PASSWORD</code> między usługami.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 05 ============ -->
+    <section class="step" id="k5">
+      <div class="step-head">
+        <span class="badge">05</span>
+        <h2>Ustaw hasło roli tylko-do-odczytu</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Migracja tworzy rolę <code>metabase_ro</code> z hasłem zastępczym. Metabase będzie
+          łączyć się właśnie nią, żeby narzędzie raportowe nie miało prawa zapisu do danych
+          finansowych. Zmień hasło przed podłączeniem.
+        </p>
+        <div class="code">
+          <div class="code-label">terminal Coolify · usługa postgres</div>
+          <pre><code>psql -U settlements -d settlements
+
+ALTER ROLE metabase_ro PASSWORD 'TU_WKLEJ_METABASE_RO_PASSWORD';
+
+<span class="cm"># weryfikacja uprawnień — SELECT ma działać, INSERT nie</span>
+\c settlements metabase_ro
+SELECT count(*) FROM core.settlement;
+INSERT INTO core.partner (partner_code) VALUES ('TEST');
+<span class="cm"># oczekiwane: ERROR: permission denied for table partner</span></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 06 ============ -->
+    <section class="step" id="k6">
+      <div class="step-head">
+        <span class="badge">06</span>
+        <h2>Podłącz Metabase i zbuduj dashboardy</h2>
+      </div>
+      <div class="step-body">
+        <p>Otwórz <code>https://bi.twojadomena.pl</code>, załóż konto administratora, a potem dodaj bazę danych:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Pole</th><th>Wartość</th></tr></thead>
+            <tbody>
+              <tr><td>Database type</td><td>PostgreSQL</td></tr>
+              <tr><td>Host</td><td><code>postgres</code></td></tr>
+              <tr><td>Port</td><td><code>5432</code></td></tr>
+              <tr><td>Database name</td><td><code>settlements</code></td></tr>
+              <tr><td>Username</td><td><code>metabase_ro</code></td></tr>
+              <tr><td>Password</td><td>hasło z kroku 05</td></tr>
+              <tr><td>Schemas</td><td><code>mart,core,ops</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Cztery dashboardy</h3>
+        <p>
+          W katalogu <code>metabase/sql/</code> znajdziesz 29 gotowych zapytań, każde
+          opisane komentarzem z sugerowaną wizualizacją. Twórz karty przez
+          <strong>+ New → SQL query</strong>, wklejaj zapytanie, wybieraj typ wykresu
+          i zapisuj do odpowiedniego dashboardu.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Dashboard</th><th>Kart</th><th>Odpowiada na pytanie</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Pieniądze</strong><br><code>01_dashboard_finansowy.sql</code></td><td class="num">8</td><td>Ile wpłynie, ile z tego to faktyczny zarobek, gdzie znikają pieniądze między sprzedażą a kieszenią</td></tr>
+              <tr><td><strong>Produkty</strong><br><code>02_dashboard_produkty.sql</code></td><td class="num">7</td><td>Co zarabia, co sprzedaje się ze stratą, ile SKU odpowiada za 80% zysku, co rośnie a co spada</td></tr>
+              <tr><td><strong>Magazyn</strong><br><code>03_dashboard_magazyn.sql</code></td><td class="num">7</td><td>Ile kapitału leży w martwym stoku, co trzeba dozamówić, ile sztuk zamówić na 90 dni</td></tr>
+              <tr><td><strong>Proces</strong><br><code>04_dashboard_operacyjny.sql</code></td><td class="num">7</td><td>Czy plik dotarł, czy kwoty się spinają, czy nadawca przysłał korektę</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Trzy alerty, które warto ustawić od razu</h3>
+        <p>W Metabase: otwórz kartę → ikona dzwonka → <strong>Set up an alert</strong>.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Karta</th><th>Warunek</th><th>Znaczenie</th></tr></thead>
+            <tbody>
+              <tr><td>1.7 — Kontrole poprawności</td><td>wartość &gt; 0</td><td>arytmetyka w otrzymanym pliku się nie spina — do wyjaśnienia z nadawcą</td></tr>
+              <tr><td>4.2 — Pliki z błędem</td><td>wartość &gt; 0</td><td>plik nie wszedł do bazy (uszkodzony lub zmieniona struktura)</td></tr>
+              <tr><td>4.4 — Rozliczenie za poprz. miesiąc</td><td>wartość = 0, sprawdzaj 10. dnia</td><td>rozliczenie nie dotarło w terminie</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 07 ============ -->
+    <section class="step" id="k7">
+      <div class="step-head">
+        <span class="badge">07</span>
+        <h2>Skonfiguruj workflow w n8n</h2>
+      </div>
+      <div class="step-body">
+        <p>Otwórz <code>https://n8n.twojadomena.pl</code> i załóż konto. Najpierw poświadczenia, potem import workflow.</p>
+
+        <h3>Poświadczenia (Credentials → Add credential)</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Nazwa w workflow</th><th>Typ</th><th>Ustawienia</th></tr></thead>
+            <tbody>
+              <tr><td>Skrzynka rozliczeniowa</td><td>IMAP</td><td>host, port 993, SSL, login i hasło skrzynki odbierającej rozliczenia</td></tr>
+              <tr><td>Klucz API ingest (X-API-Key)</td><td>Header Auth</td><td>Name: <code>X-API-Key</code>, Value: <code>INGEST_API_KEY</code></td></tr>
+              <tr><td>Poczta wychodząca</td><td>SMTP</td><td>serwer wysyłkowy do powiadomień</td></tr>
+              <tr><td>Baza rozliczeń</td><td>Postgres</td><td>host <code>postgres</code>, baza <code>settlements</code>, użytkownik <code>metabase_ro</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Zmienne (Settings → Variables)</h3>
+        <div class="code">
+          <div class="code-label">n8n · Variables</div>
+          <pre><code>NADAWCA_ROZLICZEN   = j.nikolajuk75@gmail.com
+EMAIL_POWIADOMIEN   = twoj.adres@firma.pl
+METABASE_URL        = bi.twojadomena.pl</code></pre>
+        </div>
+
+        <h3>Import workflow</h3>
+        <ol class="body-list">
+          <li><strong>Workflows → Import from File</strong> i wskaż <code>n8n/workflow_rozliczenia.json</code>.</li>
+          <li>Otwórz każdy węzeł z ikoną ostrzeżenia i wybierz utworzone przed chwilą poświadczenie.</li>
+          <li>Sprawdź węzeł <em>Czy to rozliczenie?</em> — filtruje po nadawcy ze zmiennej <code>NADAWCA_ROZLICZEN</code>.</li>
+          <li>Aktywuj workflow przełącznikiem <strong>Active</strong> w prawym górnym rogu.</li>
+        </ol>
+
+        <p>Workflow ma trzy niezależne wejścia i trzy ścieżki wyjścia:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Wyzwalacz</th><th>Kiedy działa</th></tr></thead>
+            <tbody>
+              <tr><td>IMAP</td><td>nowa nieprzeczytana wiadomość od oczekiwanego nadawcy z załącznikiem</td></tr>
+              <tr><td>Webhook</td><td>uruchomienie z zewnątrz, np. przyciskiem lub poleceniem <code>curl</code></td></tr>
+              <tr><td>Harmonogram</td><td>codziennie 9:00 między 5. a 12. dniem miesiąca — sprawdza, czy rozliczenie dotarło</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Odpowiedź workera</th><th>Reakcja</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill ok">processed</span> bez błędów kontroli</td><td>mail z podsumowaniem i liczbą wczytanych pozycji</td></tr>
+              <tr><td><span class="pill warn">processed</span> z błędami kontroli</td><td>alert: dane są w bazie, ale kwoty w pliku się nie spinają</td></tr>
+              <tr><td><span class="pill ok">duplicate</span></td><td>nic — ten plik już był, to normalne przy ponownym wysłaniu maila</td></tr>
+              <tr><td><span class="pill bad">failed</span></td><td>alert z treścią błędu; plik zostaje w archiwum do analizy</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 08 ============ -->
+    <section class="step" id="k8">
+      <div class="step-head">
+        <span class="badge">08</span>
+        <h2>Test end-to-end i wczytanie historii</h2>
+      </div>
+      <div class="step-body">
+        <p>Najważniejszy test: ten sam plik wgrany dwa razy musi zostać przetworzony tylko raz.</p>
+        <div class="code">
+          <div class="code-label">terminal · test idempotencji</div>
+          <pre><code><span class="cm"># pierwsze wgranie</span>
+curl -s -X POST https://rozliczenia.twojadomena.pl/ingest \
+     -H "X-API-Key: $INGEST_API_KEY" \
+     -F "file=@Rozliczenie_2026M07_ZZMP1.xlsx" \
+     -F "source=manual"
+<span class="cm"># oczekiwane: "status": "processed", "checks_failed": 0</span>
+
+<span class="cm"># drugie wgranie tego samego pliku</span>
+curl -s -X POST https://rozliczenia.twojadomena.pl/ingest \
+     -H "X-API-Key: $INGEST_API_KEY" \
+     -F "file=@Rozliczenie_2026M07_ZZMP1.xlsx"
+<span class="cm"># oczekiwane: "status": "duplicate" — plik pominięty</span></code></pre>
+        </div>
+
+        <h3>Lista kontrolna wdrożenia</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Sprawdzenie</th><th>Oczekiwany wynik</th></tr></thead>
+            <tbody>
+              <tr><td><code>GET /healthz</code></td><td><span class="pill ok">{"status":"ok"}</span></td></tr>
+              <tr><td>Pierwsze wgranie pliku</td><td><span class="pill ok">processed</span>, <code>checks_failed: 0</code></td></tr>
+              <tr><td>Drugie wgranie tego samego pliku</td><td><span class="pill ok">duplicate</span></td></tr>
+              <tr><td>Transformacje dbt</td><td><code>"dbt_status": "success"</code></td></tr>
+              <tr><td>Kwota do zapłaty w dashboardzie</td><td>zgodna z arkuszem Karta co do grosza</td></tr>
+              <tr><td>Suma magazynu z arkusza Stok</td><td>równa wartości z arkusza Karta</td></tr>
+              <tr><td>Metabase próbuje zapisać do bazy</td><td><span class="pill bad">permission denied</span> — tak ma być</td></tr>
+              <tr><td>Mail testowy na skrzynkę</td><td>workflow uruchamia się w ciągu minuty</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Wczytanie miesięcy historycznych</h3>
+        <p>
+          Trendy miesiąc do miesiąca zaczną działać dopiero przy dwóch okresach w bazie.
+          Jeśli masz starsze pliki, wgraj je hurtowo — dbt przeliczy modele raz, po
+          wszystkich plikach.
+        </p>
+        <div class="code">
+          <div class="code-label">terminal Coolify · usługa ingest</div>
+          <pre><code><span class="cm"># skopiuj pliki do wolumenu archiwum, potem:</span>
+python -m app.cli backfill /data/archive/historia/
+
+<span class="cm"># podsumowanie stanu systemu</span>
+python -m app.cli status</code></pre>
+        </div>
+        <div class="note">
+          <span class="note-label">Kolejność nie ma znaczenia</span>
+          <p>
+            Pliki możesz wgrywać w dowolnej kolejności — okresy są rozpoznawane
+            z zawartości arkusza (a gdy jej brak, z nazwy pliku), a trendy liczone
+            są po dacie okresu, nie po kolejności wczytania.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 09 ============ -->
+    <section class="step" id="k9">
+      <div class="step-head">
+        <span class="badge">09</span>
+        <h2>Utrzymanie</h2>
+      </div>
+      <div class="step-body">
+        <h3>Kopie zapasowe</h3>
+        <p>
+          Usługa <code>backup</code> wykonuje <code>pg_dump</code> codziennie o 3:15 do
+          wolumenu <code>backups</code>, z retencją 30 dni. Prawdziwym źródłem prawdy jest
+          jednak wolumen <code>archive</code> z oryginalnymi plikami Excel — z niego
+          odtworzysz całą bazę poleceniem <code>backfill</code>. Oba wolumeny warto
+          synchronizować poza serwer.
+        </p>
+        <div class="code">
+          <div class="code-label">terminal · kopia i odtworzenie</div>
+          <pre><code><span class="cm"># kopia na żądanie</span>
+docker compose exec postgres pg_dump -U settlements settlements \
+  | gzip &gt; kopia_$(date +%Y%m%d).sql.gz
+
+<span class="cm"># odtworzenie</span>
+gunzip -c kopia_20260831.sql.gz \
+  | docker compose exec -T postgres psql -U settlements -d settlements</code></pre>
+        </div>
+
+        <h3>Co miesiąc — po nadejściu rozliczenia</h3>
+        <ol class="body-list">
+          <li>Sprawdź mail z powiadomieniem: status <code>processed</code> i zero nieudanych kontroli.</li>
+          <li>Otwórz dashboard <strong>Proces</strong> — karta 4.6 pokazuje rozbieżność między arkuszami Raport i Karta. Rosnąca rozbieżność to sygnał do rozmowy z nadawcą.</li>
+          <li>Przejrzyj dashboard <strong>Magazyn</strong>, kartę „Do dozamówienia” — kolumna z sugerowanym zamówieniem na 90 dni.</li>
+        </ol>
+
+        <h3>Aktualizacja kodu</h3>
+        <p>
+          Wypchnij zmiany do gałęzi <code>main</code> — Coolify przebuduje worker przy
+          włączonym auto-deploy. Migracje bazy stosują się automatycznie i tylko raz
+          (rejestr w tabeli <code>ops.schema_migration</code>), więc restart kontenera
+          jest bezpieczny.
+        </p>
+
+        <div class="note tip">
+          <span class="note-label">Gdy nadawca zmieni format pliku</span>
+          <p>
+            Parser dopasowuje etykiety, nie numery wierszy — wstawienie nowego wiersza nic
+            nie zepsuje. Zmiana nazwy pozycji lub usunięcie arkusza kończy się statusem
+            <code>failed</code> i alertem, a plik zostaje nienaruszony w archiwum.
+            Poprawka to zwykle dopisanie jednego wariantu etykiety w <code>parser.py</code>
+            i ponowne wgranie pliku.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 10 ============ -->
+    <section class="step" id="k10">
+      <div class="step-head">
+        <span class="badge">10</span>
+        <h2>Gdy coś nie działa</h2>
+      </div>
+      <div class="step-body">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Objaw</th><th>Przyczyna</th><th>Co zrobić</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>/healthz</code> zwraca 503</td>
+                <td>worker nie widzi bazy</td>
+                <td>sprawdź logi usługi <code>postgres</code> i zgodność <code>POSTGRES_PASSWORD</code> we wszystkich usługach</td>
+              </tr>
+              <tr>
+                <td>n8n dostaje 401</td>
+                <td>niezgodny klucz API</td>
+                <td>porównaj wartość w poświadczeniu Header Auth ze zmienną <code>INGEST_API_KEY</code>; nazwa nagłówka musi brzmieć dokładnie <code>X-API-Key</code></td>
+              </tr>
+              <tr>
+                <td>status <code>failed</code>, komunikat „Brak wymaganych arkuszy”</td>
+                <td>nadawca zmienił nazwę karty</td>
+                <td>plik jest w archiwum, baza nietknięta — dopisz nazwę w <code>REQUIRED_SHEETS</code> w <code>parser.py</code> i wgraj ponownie</td>
+              </tr>
+              <tr>
+                <td>status <code>processed</code>, ale <code>checks_failed &gt; 0</code></td>
+                <td>arytmetyka w pliku się nie spina</td>
+                <td>dane są w bazie; karta 4.3 pokazuje, które równanie i o ile — to materiał do rozmowy z nadawcą, nie błąd systemu</td>
+              </tr>
+              <tr>
+                <td>plik został pominięty jako <code>duplicate</code>, a to korekta</td>
+                <td>identyczna zawartość pliku</td>
+                <td>jeśli treść naprawdę się różni, skrót będzie inny i powstanie rewizja; przy identycznym pliku użyj <code>--force</code> w CLI</td>
+              </tr>
+              <tr>
+                <td>dashboardy pokazują stare liczby</td>
+                <td>transformacje dbt nie przeszły</td>
+                <td><code>POST /dbt/run</code> z kluczem API albo <code>python -m app.cli dbt</code> w terminalu usługi</td>
+              </tr>
+              <tr>
+                <td>brak trendów miesiąc do miesiąca</td>
+                <td>tylko jeden okres w bazie</td>
+                <td>wczytaj miesiące historyczne poleceniem <code>backfill</code> (krok 08)</td>
+              </tr>
+              <tr>
+                <td>mail dotarł, workflow się nie uruchomił</td>
+                <td>filtr nadawcy odrzucił wiadomość</td>
+                <td>sprawdź zmienną <code>NADAWCA_ROZLICZEN</code> i zakładkę Executions w n8n</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note">
+          <span class="note-label">Zasada nadrzędna</span>
+          <p>
+            Żaden błąd nie niszczy danych. Oryginalne pliki są w archiwum, ładowanie jest
+            transakcyjne (wchodzi całość albo nic), a korekty tworzą rewizje zamiast
+            nadpisywać poprzednie wartości. W najgorszym razie odtwarzasz całą bazę
+            z archiwum poleceniem <code>backfill</code>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <div class="closing">
+      <h2>Po wdrożeniu</h2>
+      <p>
+        Od tego momentu proces jest bezobsługowy: mail przychodzi, n8n go wyłapuje, worker
+        sprawdza kwoty i ładuje dane, dbt przelicza modele, Metabase pokazuje aktualny obraz.
+        Ręcznie dotykasz systemu tylko wtedy, gdy przyjdzie alert — albo gdy chcesz wgrać
+        plik wcześniej niż zrobi to skrzynka.
+      </p>
+      <p style="margin-bottom:0">
+        Naturalne rozszerzenia na później: prognoza zapotrzebowania na podstawie kilku
+        miesięcy sprzedaży, automatyczna lista zamówień w formie pliku Excel do wysłania
+        dostawcy, oraz porównanie rentowności między kanałami, gdy dojdzie więcej niż jedno
+        źródło sprzedaży.
+      </p>
+    </div>
+
+  </main>
+</div>

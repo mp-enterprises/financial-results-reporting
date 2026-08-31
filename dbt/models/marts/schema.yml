@@ -1,0 +1,85 @@
+version: 2
+
+models:
+  - name: mart_settlement_monthly
+    description: >
+      Rachunek rozliczenia per partner × okres × kanał. Podstawowa tabela finansowa.
+      Zawiera kolumny kontrolne (kontrola_*), które muszą być TRUE — jeśli są FALSE,
+      arytmetyka w otrzymanym pliku się nie spina.
+    columns:
+      - name: settlement_id
+        data_tests: [unique, not_null]
+      - name: period_label
+        data_tests: [not_null]
+      - name: channel_code
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['MAIN', 'MJ']}
+      - name: do_zaplaty
+        data_tests: [not_null]
+      - name: kontrola_saldo_ok
+        description: saldo = FV partnera − KFV
+        data_tests:
+          - accepted_values: {values: [true], quote: false}
+      - name: kontrola_do_zaplaty_ok
+        description: do zapłaty = saldo − FV usługowa
+        data_tests:
+          - accepted_values: {values: [true], quote: false}
+      - name: kontrola_prowizji_ok
+        description: prowizja = MAX(0; zysk po kosztach × stawka)
+        data_tests:
+          - accepted_values: {values: [true], quote: false}
+    data_tests:
+      - dbt_unique_combination:
+          columns: ['partner_id', 'period_id', 'channel_code']
+
+  - name: mart_partner_pnl
+    description: Skonsolidowany wynik partnera per okres (oba kanały razem).
+    columns:
+      - name: period_id
+        data_tests: [not_null]
+      - name: zarobek_partnera
+        data_tests: [not_null]
+    data_tests:
+      - dbt_unique_combination:
+          columns: ['partner_id', 'period_id']
+
+  - name: mart_product_performance
+    description: Rentowność SKU w okresie, klasyfikacja ABC i dynamika MoM.
+    columns:
+      - name: index_code
+        data_tests: [not_null]
+      - name: klasa_abc
+        data_tests:
+          - accepted_values: {values: ['A', 'B', 'C']}
+    data_tests:
+      - dbt_unique_combination:
+          columns: ['partner_id', 'period_id', 'product_id']
+
+  - name: mart_stock_health
+    description: Zdrowie magazynu, kapitał zamrożony i rekomendacje zakupowe.
+    columns:
+      - name: stan_szt
+        data_tests: [not_null]
+      - name: kategoria_rotacji
+        data_tests:
+          - accepted_values:
+              values: ['martwy', 'nieokreslony', 'pilne', 'do_dozamowienia',
+                       'zdrowy', 'wolno_rotujacy', 'nadmiarowy']
+    data_tests:
+      - dbt_unique_combination:
+          columns: ['partner_id', 'period_id', 'product_id']
+
+  - name: mart_cost_structure
+    description: Struktura kosztów w formacie długim — pod wykresy skumulowane.
+    columns:
+      - name: kategoria
+        data_tests: [not_null]
+      - name: kwota
+        data_tests: [not_null]
+
+  - name: mart_pipeline_health
+    description: Stan procesu ładowania — co dotarło, co się nie udało, gdzie kwoty nie grają.
+    columns:
+      - name: file_id
+        data_tests: [unique, not_null]

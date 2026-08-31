@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testy:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: settlements
+          POSTGRES_USER: settlements
+          POSTGRES_PASSWORD: settlements
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports: ["5432:5432"]
+
+    env:
+      DATABASE_URL: postgresql://settlements:settlements@localhost:5432/settlements
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: settlements
+      POSTGRES_PASSWORD: settlements
+      POSTGRES_DB: settlements
+      DBT_PROJECT_DIR: dbt
+      DBT_PROFILES_DIR: dbt
+      ARCHIVE_DIR: /tmp/archive
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalacja zależności
+        run: pip install -r ingestion/requirements.txt
+
+      - name: Testy parsera
+        working-directory: ingestion
+        run: python -m pytest tests -q
+
+      - name: Migracje bazy
+        run: python -c "import sys; sys.path.insert(0,'ingestion'); from app.db import run_migrations; print(run_migrations('db/migrations'))"
+
+      - name: Załadowanie pliku przykładowego
+        run: |
+          cd ingestion
+          python -m app.cli ingest ../sample/Rozliczenie_2026M07_ZZMP1.xlsx --no-dbt
+
+      - name: Ponowne załadowanie musi zostać pominięte (idempotencja)
+        run: |
+          cd ingestion
+          wynik=$(python -m app.cli ingest ../sample/Rozliczenie_2026M07_ZZMP1.xlsx --no-dbt)
+          echo "$wynik"
+          echo "$wynik" | grep -q '"status": "duplicate"' || (echo "BŁĄD: plik przetworzony ponownie!" && exit 1)
+
+      - name: Modele i testy dbt
+        run: dbt build --project-dir dbt --profiles-dir dbt
+
+      - name: Kontrola rekoncyliacji
+        run: |
+          cd ingestion
+          python -m app.cli status | tee /tmp/status.json
+          python -c "
+          import json
+          d = json.load(open('/tmp/status.json'))
+          assert not d['nieudane_kontrole'], d['nieudane_kontrole']
+          print('Wszystkie kontrole kwot zdane')
+          "

@@ -1,0 +1,21 @@
+name: 'rozliczenia'
+version: '1.0.0'
+config-version: 2
+profile: 'rozliczenia'
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths:  ["tests"]
+target-path: "/tmp/dbt_target"
+log-path: "/tmp/dbt_logs"
+clean-targets: ["/tmp/dbt_target"]
+
+models:
+  rozliczenia:
+    +materialized: view
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: mart
+      +materialized: table

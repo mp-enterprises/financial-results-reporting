@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: core
+    schema: core
+    description: Znormalizowany model relacyjny ładowany przez pipeline Pythona.
+    tables:
+      - name: partner
+      - name: period
+      - name: channel
+      - name: settlement
+        description: Jedna karta rozliczeniowa = jeden kanał w jednym okresie (wersjonowana).
+      - name: product
+      - name: sales_line
+      - name: stock_snapshot
+      - name: settlement_note
+  - name: ops
+    schema: ops
+    tables:
+      - name: pipeline_run
+      - name: data_quality_check
+  - name: raw
+    schema: raw
+    tables:
+      - name: ingested_file

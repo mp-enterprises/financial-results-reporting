@@ -1,0 +1,14 @@
+rozliczenia:
+  target: prod
+  outputs:
+    prod:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'postgres') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
+      user: "{{ env_var('POSTGRES_USER', 'settlements') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'settlements') }}"
+      schema: mart
+      threads: 4
+      keepalives_idle: 0
+      search_path: "public"

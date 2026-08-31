@@ -1,0 +1,12 @@
+.env
+*.pyc
+__pycache__/
+.venv/
+venv/
+/data/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+.pytest_cache/
+.DS_Store
+*.sql.gz
