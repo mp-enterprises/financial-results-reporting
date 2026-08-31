@@ -865,18 +865,35 @@ echo | openssl s_client -connect bi.twojadomena.pl:443 \
           uruchamiać ich ręcznie.
         </p>
         <div class="code">
-          <div class="code-label">terminal · weryfikacja</div>
+          <div class="code-label">terminal · lokalnie (Twój komputer)</div>
           <pre><code><span class="cm"># 1. Worker odpowiada i widzi bazę</span>
 curl -s https://rozliczenia.twojadomena.pl/healthz
 <span class="cm"># oczekiwane: {"status":"ok"}</span>
 
-<span class="cm"># 2. Schemat został utworzony (terminal Coolify, usługa postgres)</span>
-psql -U settlements -d settlements -c "\dt core.*"
-<span class="cm"># oczekiwane: partner, period, channel, settlement, product,</span>
-<span class="cm">#            sales_line, stock_snapshot, settlement_note</span>
-
 <span class="cm"># 3. Panel ręcznego uploadu działa</span>
 <span class="cm"># otwórz https://rozliczenia.twojadomena.pl/ (admin + ADMIN_PASSWORD)</span></code></pre>
+        </div>
+        <div class="code">
+          <div class="code-label">terminal · NA SERWERZE (po SSH)</div>
+          <pre><code><span class="cm"># 2. Schemat został utworzony</span>
+<span class="cm">#    psql żyje wewnątrz kontenera — najpierw znajdź jego nazwę</span>
+docker ps --format '{{.Names}}' | grep -i postgres
+
+docker exec -it &lt;nazwa-kontenera&gt; psql -U settlements -d settlements -c "\dt core.*"
+<span class="cm"># oczekiwane: partner, period, channel, settlement, product,</span>
+<span class="cm">#            sales_line, stock_snapshot, settlement_note</span></code></pre>
+        </div>
+        <div class="note tip">
+          <span class="note-label">Gdzie uruchamiać polecenia z psql</span>
+          <p>
+            <code>psql</code> nie jest instalowany ani na Twoim komputerze, ani na hoście
+            serwera — jest częścią obrazu Postgresa. Każde polecenie <code>psql</code>
+            w tym runbooku wykonuj albo przez <strong>Terminal w panelu Coolify</strong>
+            (wybierz zasób, usługę <code>postgres</code>, przycisk Terminal — jesteś wtedy
+            już w środku kontenera), albo przez <code>docker exec</code> po zalogowaniu
+            się na serwer przez SSH. Uruchomienie go lokalnie kończy się komunikatem
+            <code>command not found: psql</code>.
+          </p>
         </div>
         <div class="note tip">
           <span class="note-label">Serwer na ARM</span>
@@ -911,17 +928,55 @@ psql -U settlements -d settlements -c "\dt core.*"
           łączy się właśnie nią, żeby narzędzie raportowe nie miało prawa zapisu do
           danych finansowych. Zmień hasło przed podłączeniem.
         </p>
+        <p>
+          <strong>Uwaga:</strong> to polecenie musi trafić do wnętrza kontenera Postgresa.
+          Masz dwie drogi — wybierz wygodniejszą.
+        </p>
+
+        <h3>Droga A — Terminal w panelu Coolify (najprostsza)</h3>
+        <p>
+          Otwórz swój zasób → usługa <code>postgres</code> → przycisk <strong>Terminal</strong>.
+          Jesteś wtedy już w środku kontenera, więc <code>psql</code> jest dostępny:
+        </p>
         <div class="code">
-          <div class="code-label">terminal Coolify · usługa postgres</div>
+          <div class="code-label">Coolify · Terminal usługi postgres</div>
           <pre><code>psql -U settlements -d settlements
 
-ALTER ROLE metabase_ro PASSWORD 'TU_WKLEJ_METABASE_RO_PASSWORD';
+<span class="cm"># bezpieczniej niż ALTER ROLE z hasłem w tekście: psql wyśle skrót,</span>
+<span class="cm"># więc hasło nie trafi do logów serwera ani do historii poleceń</span>
+\password metabase_ro
 
 <span class="cm"># weryfikacja uprawnień — SELECT ma działać, INSERT nie</span>
 \c settlements metabase_ro
 SELECT count(*) FROM core.settlement;
 INSERT INTO core.partner (partner_code) VALUES ('TEST');
-<span class="cm"># oczekiwane: ERROR: permission denied for table partner</span></code></pre>
+<span class="cm"># oczekiwane: ERROR: permission denied for table partner</span>
+
+\q</code></pre>
+        </div>
+
+        <h3>Droga B — SSH na serwer</h3>
+        <div class="code">
+          <div class="code-label">terminal · NA SERWERZE</div>
+          <pre><code>ssh root@IP_SERWERA
+
+<span class="cm"># znajdź kontener Postgresa</span>
+docker ps --format '{{.Names}}\t{{.Image}}' | grep -i postgres
+
+<span class="cm"># wejdź do psql wewnątrz kontenera</span>
+docker exec -it &lt;nazwa-kontenera&gt; psql -U settlements -d settlements
+
+<span class="cm"># dalej tak samo jak w drodze A:</span>
+\password metabase_ro</code></pre>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Nie uruchamiaj tego na swoim komputerze</span>
+          <p>
+            <code>psql</code> jest częścią obrazu Postgresa — nie ma go ani na Macu, ani na
+            hoście serwera. Uruchomienie lokalnie daje
+            <code>zsh: command not found: psql</code>. Baza celowo nie publikuje portu na
+            zewnątrz, więc nie da się (i nie należy) łączyć z nią wprost z laptopa.
+          </p>
         </div>
       </div>
     </section>
@@ -1174,14 +1229,26 @@ python -m app.cli status</code></pre>
           synchronizować poza serwer.
         </p>
         <div class="code">
-          <div class="code-label">terminal · kopia i odtworzenie</div>
-          <pre><code><span class="cm"># kopia na żądanie</span>
-docker compose exec postgres pg_dump -U settlements settlements \
+          <div class="code-label">terminal · NA SERWERZE (po SSH)</div>
+          <pre><code><span class="cm"># nazwa kontenera Postgresa — Coolify dokleja do niej własny identyfikator</span>
+PG=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
+
+<span class="cm"># kopia na żądanie</span>
+docker exec "$PG" pg_dump -U settlements settlements \
   | gzip &gt; kopia_$(date +%Y%m%d).sql.gz
 
 <span class="cm"># odtworzenie</span>
 gunzip -c kopia_20260831.sql.gz \
-  | docker compose exec -T postgres psql -U settlements -d settlements</code></pre>
+  | docker exec -i "$PG" psql -U settlements -d settlements</code></pre>
+        </div>
+        <div class="note">
+          <span class="note-label">Dlaczego nie docker compose exec</span>
+          <p>
+            Coolify trzyma pliki compose we własnym katalogu roboczym i nadaje projektowi
+            swoją nazwę, więc <code>docker compose exec</code> uruchomione z dowolnego
+            miejsca nie znajdzie usługi. <code>docker exec</code> z nazwą kontenera działa
+            zawsze.
+          </p>
         </div>
 
         <h3>Co miesiąc — po nadejściu rozliczenia</h3>
@@ -1249,6 +1316,21 @@ gunzip -c kopia_20260831.sql.gz \
                 <td><code>502 Bad Gateway</code></td>
                 <td>brak portu w polu Domains</td>
                 <td>wpisz <code>https://bi.domena.pl:3000</code> i <code>https://rozliczenia.domena.pl:8000</code>, potem Redeploy</td>
+              </tr>
+              <tr>
+                <td>Jedna domena działa, druga zwraca 404</td>
+                <td>kontener drugiej usługi nie działa</td>
+                <td>Traefik buduje routing z etykiet <em>działających</em> kontenerów — zatrzymany lub restartujący się kontener znika z routingu i jego domena zwraca 404. Sprawdź <code>docker ps -a | grep &lt;usługa&gt;</code> i <code>docker logs --tail 100 &lt;kontener&gt;</code>. Gdyby kontener działał, a port był zły, dostałbyś 502, nie 404</td>
+              </tr>
+              <tr>
+                <td>Metabase restartuje się w pętli</td>
+                <td>za mało pamięci albo brak jego bazy metadanych</td>
+                <td>JVM potrzebuje około 1 GB — sprawdź <code>free -m</code> i logi pod kątem <code>OutOfMemoryError</code> lub <code>database "metabase" does not exist</code>. Bazę metadanych tworzy skrypt inicjalizacyjny, ale wykonuje się on wyłącznie przy pierwszym utworzeniu wolumenu Postgresa — jeśli wolumen powstał wcześniej, utwórz ją ręcznie (patrz krok 11, sekcja poniżej tabeli)</td>
+              </tr>
+              <tr>
+                <td><code>command not found: psql</code></td>
+                <td>polecenie uruchomione lokalnie zamiast w kontenerze</td>
+                <td><code>psql</code> jest częścią obrazu Postgresa — nie ma go na Twoim komputerze ani na hoście serwera. Użyj Terminala przy usłudze <code>postgres</code> w panelu Coolify albo <code>docker exec -it &lt;kontener&gt; psql -U settlements -d settlements</code> po SSH</td>
               </tr>
               <tr>
                 <td>Cloudflare pokazuje błąd 521 / 522</td>
@@ -1351,6 +1433,26 @@ gunzip -c kopia_20260831.sql.gz \
             </tbody>
           </table>
         </div>
+
+        <h3>Ręczne utworzenie bazy metadanych Metabase</h3>
+        <p>
+          Skrypt <code>db/init/00_dodatkowe_bazy.sh</code> tworzy bazę <code>metabase</code>,
+          ale Docker uruchamia skrypty inicjalizacyjne <strong>tylko przy pierwszym
+          utworzeniu wolumenu</strong> Postgresa. Jeśli wolumen powstał przed dodaniem tego
+          skryptu, bazy nie ma i Metabase nie wstanie. Utworzenie ręczne:
+        </p>
+        <div class="code">
+          <div class="code-label">terminal · NA SERWERZE</div>
+          <pre><code>PG=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
+
+<span class="cm"># czy baza istnieje?</span>
+docker exec "$PG" psql -U settlements -d settlements -c "\l" | grep metabase
+
+<span class="cm"># jeśli jej nie ma — utwórz</span>
+docker exec "$PG" psql -U settlements -d settlements \
+  -c 'CREATE DATABASE metabase OWNER settlements;'</code></pre>
+        </div>
+        <p>Potem zrestartuj samą usługę Metabase w panelu Coolify.</p>
 
         <div class="note">
           <span class="note-label">Zasada nadrzędna</span>

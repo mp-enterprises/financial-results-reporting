@@ -66,6 +66,9 @@ services:
       ADMIN_USER: ${ADMIN_USER:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ustaw ADMIN_PASSWORD}
       ARCHIVE_DIR: /data/archive
+      # worker sprawdza przy starcie, czy baza metadanych Metabase istnieje,
+      # i tworzy ją, gdy skrypt inicjalizacyjny Postgresa już się nie uruchomi
+      METABASE_DB: ${METABASE_DB:-metabase}
       RUN_DBT_AFTER_LOAD: "true"
       RECON_TOLERANCE: "0.01"
     expose:

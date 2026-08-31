@@ -22,6 +22,8 @@ class Settings:
     admin_user: str = os.getenv("ADMIN_USER", "admin")
     admin_password: str = os.getenv("ADMIN_PASSWORD", "")
     max_upload_mb: int = int(os.getenv("MAX_UPLOAD_MB", "50"))
+    # baza metadanych Metabase — worker dba, żeby istniała (patrz db.ensure_database)
+    metabase_db: str = os.getenv("METABASE_DB", "metabase")
 
 
 settings = Settings()

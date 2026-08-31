@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import logging
+import re
 from contextlib import contextmanager
 from pathlib import Path
 
 import psycopg
+from psycopg import sql
 from psycopg_pool import ConnectionPool
 
 from .config import settings
@@ -26,6 +28,37 @@ def connection():
     """Transakcja: commit przy sukcesie, rollback przy wyjątku."""
     with get_pool().connection() as conn:
         yield conn
+
+
+def ensure_database(name: str) -> bool:
+    """Tworzy bazę pomocniczą (np. metadanych Metabase), jeśli jej nie ma.
+
+    Skrypty z /docker-entrypoint-initdb.d wykonują się WYŁĄCZNIE przy pierwszym
+    utworzeniu wolumenu Postgresa. Gdy wolumen już istniał, brakująca baza nigdy
+    sama nie powstanie, a Metabase wpada w pętlę restartów z komunikatem
+    `database "metabase" does not exist`. Ta funkcja działa przy każdym starcie
+    workera, więc naprawia to niezależnie od historii wolumenu.
+
+    Zwraca True, jeśli baza została właśnie utworzona.
+    """
+    if not re.fullmatch(r"[a-z_][a-z0-9_]{0,62}", name):
+        raise ValueError(f"Niedozwolona nazwa bazy: {name!r}")
+
+    # CREATE DATABASE nie może działać w transakcji — stąd autocommit.
+    with psycopg.connect(settings.database_url, autocommit=True) as conn:
+        istnieje = conn.execute(
+            "SELECT 1 FROM pg_database WHERE datname = %s", (name,)
+        ).fetchone()
+        if istnieje:
+            return False
+        wlasciciel = conn.execute("SELECT current_user").fetchone()[0]
+        log.warning("Baza %r nie istnieje — tworzę ją", name)
+        conn.execute(
+            sql.SQL("CREATE DATABASE {} OWNER {}").format(
+                sql.Identifier(name), sql.Identifier(wlasciciel)
+            )
+        )
+    return True
 
 
 def run_migrations(migrations_dir: str | Path = "/app/db/migrations") -> list[str]:

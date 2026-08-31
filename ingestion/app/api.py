@@ -35,7 +35,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, Field
 
 from .config import settings
-from .db import connection, run_migrations
+from .db import connection, ensure_database, run_migrations
 from .parser import sha256_of
 from .pipeline import ingest_file, run_dbt
 
@@ -50,6 +50,15 @@ TERMINAL_OK = ("loaded", "transformed")
 
 @app.on_event("startup")
 def _startup() -> None:
+    # Metabase trzyma metadane w osobnej bazie. Skrypt inicjalizacyjny Postgresa
+    # tworzy ją tylko przy pierwszym starcie wolumenu, więc upewniamy się tutaj —
+    # to działa przy każdym wdrożeniu, niezależnie od wieku wolumenu.
+    try:
+        if ensure_database(settings.metabase_db):
+            log.warning("Utworzono brakującą bazę %r dla Metabase", settings.metabase_db)
+    except Exception:  # noqa: BLE001
+        log.exception("Nie udało się zapewnić bazy %r", settings.metabase_db)
+
     repo_migrations = Path(__file__).resolve().parents[2] / "db" / "migrations"
     applied = run_migrations(repo_migrations if repo_migrations.exists() else "/app/db/migrations")
     if applied:
