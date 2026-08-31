@@ -5,14 +5,20 @@
 # Zmienne pochodzą z zakładki Environment Variables (patrz .env.example).
 #
 # Publicznie wystawiamy TYLKO dwie usługi (domeny ustawiasz w UI Coolify,
-# w polu "Domains" przy każdej usłudze — patrz runbook, krok 03):
+# w polu "Domains" przy każdej usłudze — patrz runbook, krok 04):
 #   * metabase  ->  https://bi.twojadomena.pl:3000
 #   * ingest    ->  https://rozliczenia.twojadomena.pl:8000
 # Postgres i backup nie mają domeny — są dostępne wyłącznie w sieci Dockera.
 #
 # n8n NIE jest częścią tego stacku: używamy n8n Cloud, który łączy się
-# z workerem przez publiczny HTTPS i klucz API. Jeśli kiedyś zechcesz
-# postawić n8n u siebie, dopisz usługę i podłącz ją do sieci "rozliczenia".
+# z workerem przez publiczny HTTPS i klucz API.
+#
+# CELOWO NIE definiujemy własnej sieci. Coolify podpina usługi z domeną do
+# sieci swojego proxy (Traefik) i tworzy dla nich routing. Własna sieć potrafi
+# to zablokować — objawia się to błędem 404 z Traefika i certyfikatem
+# samopodpisanym, mimo że build i kontenery działają poprawnie. Usługi i tak
+# widzą się nawzajem po nazwie w domyślnej sieci projektu, a Postgres pozostaje
+# niedostępny z zewnątrz, bo nie publikuje żadnego portu.
 # =============================================================================
 
 services:
@@ -36,8 +42,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    # BEZ portu na zewnątrz — baza jest dostępna tylko w sieci Dockera.
-    networks: [rozliczenia]
+    # BEZ portu na zewnątrz — baza jest dostępna tylko w sieci projektu.
 
   # -------------------------------------------------------------------------
   # Worker: API przyjmujące pliki + parser + loader + dbt
@@ -63,6 +68,8 @@ services:
       ARCHIVE_DIR: /data/archive
       RUN_DBT_AFTER_LOAD: "true"
       RECON_TOLERANCE: "0.01"
+    expose:
+      - "8000"
     volumes:
       - archive:/data/archive          # niezmienne archiwum otrzymanych plików
     healthcheck:
@@ -71,11 +78,21 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-    networks: [rozliczenia]
 
   # -------------------------------------------------------------------------
   # Metabase — warstwa wizualizacji.
-  # Trzyma własne metadane w tej samej bazie, ale w osobnym schemacie/bazie.
+  # Trzyma własne metadane w osobnej bazie na tym samym Postgresie.
+  #
+  # UWAGA NA ARCHITEKTURĘ: obrazy Metabase są wieloarchitekturowe (amd64 +
+  # arm64) dopiero od nowszych wydań — starsze tagi, np. v0.52.8, istnieją
+  # wyłącznie dla amd64 i na serwerze ARM kończą się ostrzeżeniem
+  # "does not match the detected host platform" oraz uruchomieniem pod emulacją
+  # QEMU (albo brakiem startu). Dla JVM emulacja oznacza wielokrotnie wolniejszy
+  # start i losowe zawieszki, więc trzymamy się tagu z natywnym arm64.
+  #
+  # v0.58-lts to linia długiego wsparcia; poniżej przypięte konkretne wydanie,
+  # żeby redeploy nie podmienił wersji bez Twojej decyzji. Jeśli wolisz
+  # automatyczne łatki w obrębie linii LTS, użyj tagu v0.58-lts.
   # -------------------------------------------------------------------------
   metabase:
     image: metabase/metabase:v0.58.31
@@ -93,13 +110,14 @@ services:
       MB_SITE_LOCALE: pl
       MB_START_OF_WEEK: monday
       JAVA_TIMEZONE: Europe/Warsaw
+    expose:
+      - "3000"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 10
       start_period: 120s
-    networks: [rozliczenia]
 
   # -------------------------------------------------------------------------
   # Kopie zapasowe: codzienny pg_dump do wolumenu (i opcjonalnie do S3).
@@ -131,13 +149,8 @@ services:
           fi;
           sleep 45;
         done
-    networks: [rozliczenia]
 
 volumes:
   pgdata:
   archive:
   backups:
-
-networks:
-  rozliczenia:
-    driver: bridge

@@ -878,6 +878,16 @@ psql -U settlements -d settlements -c "\dt core.*"
 <span class="cm"># 3. Panel ręcznego uploadu działa</span>
 <span class="cm"># otwórz https://rozliczenia.twojadomena.pl/ (admin + ADMIN_PASSWORD)</span></code></pre>
         </div>
+        <div class="note tip">
+          <span class="note-label">Serwer na ARM</span>
+          <p>
+            Stack działa natywnie na arm64: <code>postgres:16-alpine</code> i
+            <code>metabase/metabase:v0.58.31</code> mają obrazy arm64, a worker buduje się
+            z <code>python:3.12-slim</code> — wszystkie jego zależności, łącznie
+            z <code>psycopg2-binary</code> (wymaganym przez dbt), mają koła aarch64.
+            Nic nie chodzi pod emulacją.
+          </p>
+        </div>
         <div class="note warn">
           <span class="note-label">Jeśli healthz zwraca 503</span>
           <p>
@@ -1226,6 +1236,16 @@ gunzip -c kopia_20260831.sql.gz \
                 <td>przełącz chmurkę na szarą, zrób Redeploy w Coolify, poczekaj 2 min, potem wróć do proxy</td>
               </tr>
               <tr>
+                <td><code>404 page not found</code> mimo „build succeeded”</td>
+                <td>Traefik działa, ale nie ma routingu dla tej domeny</td>
+                <td>to nie jest problem builda — kontenery chodzą, tylko proxy o nich nie wie. Sprawdź kolejno: (1) czy domena jest wpisana w polu <strong>Domains</strong> <em>przy konkretnej usłudze</em>, a nie na poziomie zasobu; (2) czy ma pełną postać <code>https://bi.domena.pl:3000</code> ze schematem i portem; (3) czy po zapisaniu zrobiłeś <strong>Redeploy</strong> — etykiety Traefika powstają przy wdrożeniu, samo Save nie wystarcza; (4) czy compose nie definiuje własnej sieci, bo odcina usługę od proxy</td>
+              </tr>
+              <tr>
+                <td>Przeglądarka ostrzega o certyfikacie samopodpisanym</td>
+                <td>brak routingu ⇒ Traefik serwuje swój domyślny certyfikat</td>
+                <td>to ten sam problem co wyżej, nie osobna usterka z SSL. Let's Encrypt wystawia certyfikat dopiero wtedy, gdy istnieje router dla domeny — napraw routing, certyfikat pojawi się sam w ciągu minuty</td>
+              </tr>
+              <tr>
                 <td><code>502 Bad Gateway</code></td>
                 <td>brak portu w polu Domains</td>
                 <td>wpisz <code>https://bi.domena.pl:3000</code> i <code>https://rozliczenia.domena.pl:8000</code>, potem Redeploy</td>
@@ -1244,6 +1264,30 @@ gunzip -c kopia_20260831.sql.gz \
                 <td><code>dig</code> zwraca 104.21.x / 172.67.x</td>
                 <td>proxy jest włączone</td>
                 <td>to normalne po kroku 4.8; jeśli certyfikat jeszcze nie istnieje — wyłącz proxy</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Architektura serwera (ARM)</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Objaw</th><th>Przyczyna</th><th>Co zrobić</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8)</code></td>
+                <td>obraz istnieje tylko dla amd64, a serwer jest na ARM</td>
+                <td>podmień tag na wydanie z natywnym arm64 — w tym stacku Metabase jest przypięty na <code>v0.58.31</code>; starsze tagi (np. <code>v0.52.8</code>) są wyłącznie amd64</td>
+              </tr>
+              <tr>
+                <td>Metabase startuje kilkanaście minut albo losowo pada</td>
+                <td>obraz amd64 uruchomiony pod emulacją QEMU</td>
+                <td>to nie jest problem zasobów — JVM pod emulacją jest niesprawna; użyj obrazu arm64 zamiast zwiększać RAM</td>
+              </tr>
+              <tr>
+                <td>Chcesz sprawdzić, czy dany tag ma arm64</td>
+                <td>—</td>
+                <td><code>docker manifest inspect metabase/metabase:v0.58.31 | grep architecture</code></td>
               </tr>
             </tbody>
           </table>

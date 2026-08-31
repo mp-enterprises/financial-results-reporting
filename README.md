@@ -191,7 +191,9 @@ docker compose exec ingest dbt test --project-dir /app/dbt --profiles-dir /app/d
 
 ## Bezpieczeństwo
 
-- Postgres nie ma wystawionego portu — dostępny tylko w sieci Dockera.
+- Postgres nie ma wystawionego portu — dostępny tylko w wewnętrznej sieci
+  projektu, którą tworzy Coolify (compose celowo nie definiuje własnej sieci,
+  bo to odcina usługi od proxy Traefika).
   n8n Cloud nigdy nie łączy się z bazą; pyta worker przez `/status/okres`.
 - Metabase łączy się rolą `metabase_ro` (tylko `SELECT`). Po pierwszym starcie
   zmień jej hasło: `ALTER ROLE metabase_ro PASSWORD '…';`
