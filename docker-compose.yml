@@ -78,7 +78,7 @@ services:
   # Trzyma własne metadane w tej samej bazie, ale w osobnym schemacie/bazie.
   # -------------------------------------------------------------------------
   metabase:
-    image: metabase/metabase:v0.52.8
+    image: metabase/metabase:v0.58.31
     restart: unless-stopped
     depends_on:
       postgres:
