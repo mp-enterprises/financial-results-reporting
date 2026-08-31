@@ -1,4 +1,19 @@
 -- =============================================================================
+-- FILTR PARTNERA — obowiązkowy w każdej karcie
+--
+-- W Metabase dodaj do każdej karty zmienną tekstową {{partner}}:
+--   Variables -> partner -> Variable type: Text -> Required -> Default: ZZMP1
+--
+-- Dlaczego obowiązkowy, a nie opcjonalny: przy dwóch partnerach karta bez
+-- filtra po cichu miesza dane dwóch firm na jednym wykresie albo pokazuje
+-- wynik nie tego podmiotu, o który pytasz — bez żadnego sygnału błędu.
+--
+-- OSTATNI OKRES liczymy po period_start (prawdziwej dacie), NIGDY po
+-- max(period_id). period_id to klucz sztuczny nadawany w kolejności wczytania
+-- plików — po wgraniu historii wstecz wskazuje niewłaściwy miesiąc.
+-- =============================================================================
+
+-- =============================================================================
 -- DASHBOARD 2: "Produkty" — co zarabia, co traci
 -- =============================================================================
 
@@ -15,7 +30,9 @@ SELECT
     udzial_w_zysku   AS "Udział w zysku",
     klasa_abc        AS "ABC"
 FROM mart.mart_product_performance
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_product_performance)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_product_performance
+                            WHERE partner_code = {{partner}})
 ORDER BY zysk DESC
 LIMIT 20;
 
@@ -31,8 +48,10 @@ SELECT
     zysk            AS "Strata",
     marza_pct       AS "Marża"
 FROM mart.mart_product_performance
-WHERE sprzedane_ze_strata
-  AND period_id = (SELECT max(period_id) FROM mart.mart_product_performance)
+WHERE partner_code = {{partner}}
+  AND sprzedane_ze_strata
+  AND period_start = (SELECT max(period_start) FROM mart.mart_product_performance
+                            WHERE partner_code = {{partner}})
 ORDER BY zysk ASC;
 
 
@@ -44,7 +63,9 @@ SELECT
     SUM(zysk)                               AS "Zysk",
     SUM(zysk) / SUM(SUM(zysk)) OVER ()      AS "Udział w zysku"
 FROM mart.mart_product_performance
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_product_performance)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_product_performance
+                            WHERE partner_code = {{partner}})
 GROUP BY klasa_abc
 ORDER BY klasa_abc;
 
@@ -53,7 +74,9 @@ ORDER BY klasa_abc;
 -- Wizualizacja: Table z formatowaniem warunkowym (zielony/czerwony)
 WITH ostatni AS (
     SELECT * FROM mart.mart_product_performance
-    WHERE period_id = (SELECT max(period_id) FROM mart.mart_product_performance)
+    WHERE partner_code = {{partner}}
+      AND period_start = (SELECT max(period_start) FROM mart.mart_product_performance
+                            WHERE partner_code = {{partner}})
       AND zysk_poprz IS NOT NULL
 )
 (SELECT 'wzrost' AS "Kierunek", index_code AS "Indeks", product_name AS "Nazwa",
@@ -75,14 +98,16 @@ SELECT
     zysk            AS "Zysk",
     klasa_abc       AS "Klasa"
 FROM mart.mart_product_performance
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_product_performance)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_product_performance
+                            WHERE partner_code = {{partner}})
   AND wartosc_netto > 0
 ORDER BY wartosc_netto DESC
 LIMIT 200;
 
 
 -- KARTA 2.6 [Wykres liniowy] — Historia wybranego produktu
--- Dodaj w Metabase filtr {{indeks}} podpięty do kolumny index_code.
+-- W Metabase dodaj drugą zmienną tekstową {{indeks}} (Required, np. DB000003).
 SELECT
     period_label   AS "Okres",
     index_code     AS "Indeks",
@@ -91,13 +116,15 @@ SELECT
     zysk           AS "Zysk",
     marza_pct      AS "Marża"
 FROM mart.mart_product_performance
-WHERE {{indeks}}
+WHERE partner_code = {{partner}}
+  AND index_code = {{indeks}}
 ORDER BY period_start;
--- [[AND index_code = {{indeks}}]]  <- wariant z filtrem opcjonalnym
 
 
 -- KARTA 2.7 [Liczba] — Nowe produkty w tym okresie
 SELECT COUNT(*) AS "Nowe SKU w sprzedaży"
 FROM mart.mart_product_performance
-WHERE nowy_w_tym_okresie
-  AND period_id = (SELECT max(period_id) FROM mart.mart_product_performance);
+WHERE partner_code = {{partner}}
+  AND nowy_w_tym_okresie
+  AND period_start = (SELECT max(period_start) FROM mart.mart_product_performance
+                            WHERE partner_code = {{partner}});

@@ -12,7 +12,8 @@ from pathlib import Path
 import pytest
 from openpyxl import Workbook, load_workbook
 
-from app.parser import (ParseError, normalize, parse_period, parse_workbook,
+from app.parser import (MAX_WIERSZY_ZRZUTU, ParseError, normalize, parse_period,
+                        parse_workbook,
                         sha256_of, to_decimal)
 
 SAMPLE = Path(__file__).resolve().parents[2] / "sample" / "Rozliczenie_2026M07_ZZMP1.xlsx"
@@ -227,3 +228,157 @@ def test_partner_z_nazwy_pliku_gdy_brak_w_tresci(tmp_path):
 def test_sha256_jest_stabilny():
     assert sha256_of(SAMPLE) == sha256_of(SAMPLE)
     assert len(sha256_of(SAMPLE)) == 64
+
+
+# =============================================================================
+# Odporność na zmiany formatu po stronie nadawcy
+#
+# Najgroźniejsza zmiana to nie nowy arkusz, tylko wstawiona lub przestawiona
+# KOLUMNA: odczyt po stałych pozycjach przesunąłby wartości i załadował do bazy
+# ciche przekłamania (cena jako wartość, wartość jako zysk). Dlatego kolumny są
+# mapowane po etykietach nagłówka, a te testy tego pilnują.
+# =============================================================================
+
+WZORZEC_PIERWSZEJ_POZYCJI = dict(
+    index_code="DB000003", quantity=71,
+    net_value=Decimal("16937.86"), profit=Decimal("12974.64"),
+)
+
+
+def _sprawdz_pierwsza_pozycje(parsed):
+    linia = parsed.sales_lines[0]
+    for pole, oczekiwane in WZORZEC_PIERWSZEJ_POZYCJI.items():
+        assert getattr(linia, pole) == oczekiwane, pole
+
+
+def test_nowy_arkusz_nie_psuje_parsera(tmp_path):
+    """Nadawca dokłada arkusz — rozliczenie ma się wczytać bez zmian."""
+    dst = tmp_path / "nowy_arkusz.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    ws = wb.create_sheet("Prowizje_2027")
+    ws["A1"] = "Nowa tabela nadawcy"
+    for i in range(2, 60):
+        ws.cell(row=i, column=1, value=f"poz{i}")
+        ws.cell(row=i, column=2, value=i * 1.5)
+    wb.save(dst)
+
+    p = parse_workbook(dst)
+    _sprawdz_pierwsza_pozycje(p)
+    assert p.settlements["MAIN"].do_zaplaty == Decimal("60041.44380764045")
+    assert "Prowizje_2027" in p.unknown_sheets
+    assert any("nowe arkusze" in w for w in p.warnings)
+    assert "Prowizje_2027" in p.sheet_payloads        # zarchiwizowany do audytu
+
+
+def test_wiele_nowych_arkuszy(tmp_path):
+    dst = tmp_path / "wiele.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    for nazwa in ("Aneks", "Korekty_VAT", "Notatki"):
+        wb.create_sheet(nazwa)["A1"] = nazwa
+    wb.save(dst)
+
+    p = parse_workbook(dst)
+    _sprawdz_pierwsza_pozycje(p)
+    assert len(p.unknown_sheets) == 3
+
+
+def test_ogromny_nowy_arkusz_jest_przycinany(tmp_path):
+    """Nowy arkusz o dowolnej wielkości nie może wysadzić pamięci workera."""
+    dst = tmp_path / "ogromny.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    ws = wb.create_sheet("Log")
+    for i in range(1, MAX_WIERSZY_ZRZUTU + 5_001):
+        ws.cell(row=i, column=1, value=i)
+    wb.save(dst)
+
+    p = parse_workbook(dst)
+    _sprawdz_pierwsza_pozycje(p)
+    assert len(p.sheet_payloads["Log"]) <= MAX_WIERSZY_ZRZUTU
+    assert any("przekroczy" in w for w in p.warnings)
+
+
+def test_wstawiona_kolumna_w_raporcie(tmp_path):
+    """Kolumna wstawiona w środku NIE MOŻE przesunąć wartości."""
+    dst = tmp_path / "kolumna.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    ws = wb["Raport"]
+    ws.insert_cols(2)
+    ws.cell(row=3, column=2).value = "EAN"
+    for i in range(4, ws.max_row + 1):
+        ws.cell(row=i, column=2, value="590123456789")
+    wb.save(dst)
+
+    p = parse_workbook(dst)
+    _sprawdz_pierwsza_pozycje(p)
+    assert any("ean" in w.lower() for w in p.warnings)
+
+
+def test_przestawione_kolumny_w_stoku(tmp_path):
+    dst = tmp_path / "stok_kol.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    ws = wb["Stok"]
+    naglowek = [ws.cell(row=3, column=c).value for c in range(1, 11)]
+    dane = [[ws.cell(row=r, column=c).value for c in range(1, 11)]
+            for r in range(4, ws.max_row + 1)]
+    kolejnosc = [0, 3, 1, 2, 9, 4, 5, 6, 7, 8]
+    for c, src in enumerate(kolejnosc, start=1):
+        ws.cell(row=3, column=c, value=naglowek[src])
+        for r, wiersz in enumerate(dane, start=4):
+            ws.cell(row=r, column=c, value=wiersz[src])
+    wb.save(dst)
+
+    p = parse_workbook(dst)
+    poz = next(l for l in p.stock_lines if l.index_code == "YXT003")
+    assert poz.qty_on_hand == 78
+    assert poz.purchase_value == Decimal("23772.84")
+    assert poz.stock_status == "OK"
+    suma = sum(l.purchase_value for l in p.stock_lines)
+    assert abs(suma - Decimal("269484.89")) < Decimal("0.01")
+
+
+def test_brak_wymaganej_kolumny_konczy_sie_bledem(tmp_path):
+    """Lepiej kwarantanna niż ciche śmieci w rozliczeniu."""
+    dst = tmp_path / "brak_kol.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    wb["Raport"].delete_cols(5)                       # kolumna Wartość
+    wb.save(dst)
+    with pytest.raises(ParseError, match="nie rozpoznano wymaganych kolumn"):
+        parse_workbook(dst)
+
+
+def test_brak_opcjonalnej_kolumny_daje_ostrzezenie(tmp_path):
+    dst = tmp_path / "brak_opc.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    wb["Stok"].delete_cols(10)                        # kolumna Status
+    wb.save(dst)
+
+    p = parse_workbook(dst)
+    assert len(p.stock_lines) == 1096
+    assert all(l.stock_status is None for l in p.stock_lines)
+    assert any("opcjonalnych kolumn" in w for w in p.warnings)
+
+
+def test_kombinacja_zmian(tmp_path):
+    """Nowy arkusz + nowa kolumna + nowe wiersze naraz."""
+    dst = tmp_path / "kombo.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    wb.create_sheet("Zalacznik")["A1"] = "x"
+    wb["Karta"].insert_rows(1, 2)
+    wb["Karta"]["A1"] = "NAGŁÓWEK DODANY PRZEZ NADAWCĘ"
+    ws = wb["Raport"]
+    ws.insert_cols(3)
+    ws.cell(row=3, column=3).value = "Kategoria"
+    wb.save(dst)
+
+    p = parse_workbook(dst)
+    _sprawdz_pierwsza_pozycje(p)
+    assert p.settlements["MAIN"].do_zaplaty == Decimal("60041.44380764045")
+    assert len(p.sales_lines) == 306

@@ -46,15 +46,22 @@ LIMIT 100;
 
 -- KARTA 4.4 [Liczba, alert] — Czy rozliczenie za poprzedni miesiąc dotarło
 -- Ustaw alert: powiadom, gdy wartość = 0 po 10. dniu miesiąca.
-SELECT COUNT(*) AS "Rozliczeń za poprzedni miesiąc"
+-- Rozbite na partnerów: przy kilku podmiotach jedna liczba zbiorcza ukryłaby
+-- fakt, że brakuje rozliczenia tylko od jednego z nich.
+SELECT
+    partner_code                AS "Partner",
+    COUNT(*)                    AS "Rozliczeń za poprzedni miesiąc"
 FROM mart.mart_settlement_monthly
 WHERE period_year  = EXTRACT(YEAR  FROM now() - INTERVAL '1 month')
-  AND period_month = EXTRACT(MONTH FROM now() - INTERVAL '1 month');
+  AND period_month = EXTRACT(MONTH FROM now() - INTERVAL '1 month')
+GROUP BY partner_code
+ORDER BY partner_code;
 
 
 -- KARTA 4.5 [Tabela] — Korekty: okresy z więcej niż jedną wersją pliku
 -- Jeśli tu coś jest, znaczy że nadawca przysłał poprawione rozliczenie.
 SELECT
+    pa.partner_code           AS "Partner",
     p.period_label            AS "Okres",
     s.channel_code            AS "Kanał",
     s.revision                AS "Rewizja",
@@ -64,18 +71,20 @@ SELECT
     s.created_at              AS "Wczytano"
 FROM core.settlement s
 JOIN core.period p          ON p.period_id = s.period_id
+JOIN core.partner pa        ON pa.partner_id = s.partner_id
 JOIN raw.ingested_file f    ON f.file_id = s.file_id
 WHERE (s.partner_id, s.period_id, s.channel_code) IN (
     SELECT partner_id, period_id, channel_code
     FROM core.settlement GROUP BY 1, 2, 3 HAVING COUNT(*) > 1
 )
-ORDER BY p.period_label DESC, s.channel_code, s.revision;
+ORDER BY pa.partner_code, p.period_label DESC, s.channel_code, s.revision;
 
 
 -- KARTA 4.6 [Tabela] — Rozbieżność Raport vs Karta
 -- Zgodnie z instrukcją nadawcy Raport nie musi zgadzać się co do grosza
 -- z Kartą (zwroty rozliczane wartościowo). Monitorujemy skalę rozbieżności.
 SELECT
+    partner_code                     AS "Partner",
     period_label                     AS "Okres",
     saldo_towaru                     AS "Saldo wg Karty",
     raport_total_wartosc             AS "Suma wg Raportu",
@@ -85,7 +94,7 @@ SELECT
     roznica_zysku_raport_vs_karta    AS "Różnica zysku"
 FROM mart.mart_settlement_monthly
 WHERE channel_code = 'MAIN'
-ORDER BY period_start DESC;
+ORDER BY partner_code, period_start DESC;
 
 
 -- KARTA 4.7 [Tabela] — Ostatnie uruchomienia pipeline'u

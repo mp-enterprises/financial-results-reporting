@@ -49,8 +49,18 @@ tworzy rewizję nr 2, a poprzednia dostaje `is_current = FALSE` i wskazanie
 przelicza sześć równań rozliczenia. Rozbieżność powyżej grosza to alert,
 nie cichy błąd w raporcie.
 
-**Parsowanie po etykietach, nie po numerach wierszy.** Wstawienie przez nadawcę
-dodatkowego wiersza w arkuszu nie psuje procesu — potwierdzone testem.
+**Parsowanie po etykietach — wierszy i kolumn.** Ani wstawienie wiersza, ani
+wstawienie czy przestawienie kolumny nie psuje procesu: pozycje w tabelach
+`Raport` i `Stok` są odczytywane przez mapę zbudowaną z nagłówka, nie po stałych
+indeksach. To zabezpieczenie przed najgroźniejszą zmianą, jaką nadawca może
+wprowadzić — odczyt po pozycjach przesunąłby wartości i załadował do bazy ciche
+przekłamania (cena jako wartość, wartość jako zysk), bez żadnego błędu.
+Brak kolumny wymaganej to kwarantanna, brak opcjonalnej — ostrzeżenie.
+
+**Nowe arkusze nie psują niczego.** Arkusz, którego parser nie zna, jest
+archiwizowany w `raw.sheet_payload` i zgłaszany w `warnings`, ale nie wpływa na
+rozliczenie. Odczyt takiego arkusza jest ograniczony do 20 000 wierszy, żeby
+załącznik o nieoczekiwanej wielkości nie wyczerpał pamięci workera.
 
 **Arkusze opcjonalne.** Wymagane są tylko `Karta` i `Raport`. `Karta_MJ`
 (kanał Amazon) i `Stok` (magazyn) bywają nieobecne — nadawca dodał arkusz
@@ -74,13 +84,14 @@ ingestion/app/
   pipeline.py                         orkiestracja i idempotencja
   api.py                              FastAPI: webhook, tryb async, formularz ręczny
   cli.py                              uruchamianie z linii poleceń
-ingestion/tests/                      testy parsera (16 przypadków)
+ingestion/tests/                      testy parsera (30 przypadków, w tym odporność na zmiany formatu)
 dbt/models/staging/                   widoki normalizujące
 dbt/models/marts/                     6 tabel analitycznych
 n8n/workflow_rozliczenia_cloud.json   workflow do zaimportowania w n8n Cloud
 metabase/sql/                         29 zweryfikowanych zapytań pod karty dashboardów
 docker-compose.yml                    stack dla Coolify
 docs/wdrozenie.html                   runbook wdrożeniowy krok po kroku
+docs/onboarding_partnera.html         procedura dodania kolejnego partnera
 ```
 
 ## Model danych
@@ -107,6 +118,12 @@ bo to dwa oddzielne przelewy od dwóch różnych podmiotów. Model
 | `mart_stock_health` | kapitał zamrożony, dni pokrycia, rekomendacje zakupowe |
 | `mart_cost_structure` | struktura kosztów w formacie długim (pod wykresy) |
 | `mart_pipeline_health` | stan procesu: co dotarło, co się nie udało |
+
+Każda tabela w warstwie `mart` niesie `partner_id` i `partner_code`, a wszystkie
+funkcje okna partycjonują po partnerze — model jest wielo-partnerski od początku
+i dodanie kolejnego podmiotu nie wymaga migracji. Karty w `metabase/sql/`
+wymagają zmiennej `{{partner}}`: bez niej przy dwóch partnerach mieszałyby dane
+dwóch firm bez żadnego sygnału błędu. Pełna procedura: `docs/onboarding_partnera.html`.
 
 ## API
 
@@ -185,7 +202,7 @@ Wgranie plików historycznych: `python -m app.cli backfill ./archiwum/`
 ## Testy
 
 ```bash
-pytest ingestion/tests -q          # 16 testów parsera
+pytest ingestion/tests -q          # 30 testów parsera
 docker compose exec ingest dbt test --project-dir /app/dbt --profiles-dir /app/dbt
 ```
 

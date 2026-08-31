@@ -1,7 +1,22 @@
 -- =============================================================================
+-- FILTR PARTNERA — obowiązkowy w każdej karcie
+--
+-- W Metabase dodaj do każdej karty zmienną tekstową {{partner}}:
+--   Variables -> partner -> Variable type: Text -> Required -> Default: ZZMP1
+--
+-- Dlaczego obowiązkowy, a nie opcjonalny: przy dwóch partnerach karta bez
+-- filtra po cichu miesza dane dwóch firm na jednym wykresie albo pokazuje
+-- wynik nie tego podmiotu, o który pytasz — bez żadnego sygnału błędu.
+--
+-- OSTATNI OKRES liczymy po period_start (prawdziwej dacie), NIGDY po
+-- max(period_id). period_id to klucz sztuczny nadawany w kolejności wczytania
+-- plików — po wgraniu historii wstecz wskazuje niewłaściwy miesiąc.
+-- =============================================================================
+
+-- =============================================================================
 -- DASHBOARD 1: "Pieniądze" — przegląd finansowy
 -- Każde zapytanie = jedna karta w Metabase. Nazwa w komentarzu = tytuł karty.
--- Filtr {{okres}} jest opcjonalny — w Metabase dodaj go jako zmienną pola.
+-- Każda karta wymaga zmiennej {{partner}} (patrz nagłówek pliku).
 -- =============================================================================
 
 
@@ -12,6 +27,7 @@ SELECT
     do_zaplaty_main   AS "Kanał główny (NIKCORP)",
     do_zaplaty_mj     AS "Kanał MJ / Amazon"
 FROM mart.mart_partner_pnl
+WHERE partner_code = {{partner}}
 ORDER BY period_start DESC
 LIMIT 1;
 
@@ -25,6 +41,7 @@ SELECT
     rentownosc_netto           AS "Rentowność netto",
     zarobek_narastajaco_rok    AS "Narastająco w roku"
 FROM mart.mart_partner_pnl
+WHERE partner_code = {{partner}}
 ORDER BY period_start DESC
 LIMIT 1;
 
@@ -38,6 +55,7 @@ SELECT
     koszty_razem                 AS "Koszty razem",
     rentownosc_netto             AS "Rentowność netto"
 FROM mart.mart_partner_pnl
+WHERE partner_code = {{partner}}
 ORDER BY period_start;
 
 
@@ -45,7 +63,9 @@ ORDER BY period_start;
 -- Pokazuje, gdzie „znikają” pieniądze między sprzedażą a kieszenią partnera.
 -- Wizualizacja: Waterfall (kolumna Krok / Kwota)
 WITH ostatni AS (
-    SELECT * FROM mart.mart_partner_pnl ORDER BY period_start DESC LIMIT 1
+    SELECT * FROM mart.mart_partner_pnl
+     WHERE partner_code = {{partner}}
+     ORDER BY period_start DESC LIMIT 1
 )
 SELECT krok AS "Krok", kwota AS "Kwota", kolejnosc
 FROM ostatni, LATERAL (VALUES
@@ -67,6 +87,7 @@ SELECT
     kategoria    AS "Kategoria kosztu",
     SUM(kwota)   AS "Kwota"
 FROM mart.mart_cost_structure
+WHERE partner_code = {{partner}}
 GROUP BY period_label, period_start, kategoria, kolejnosc
 ORDER BY period_start, kolejnosc;
 
@@ -86,6 +107,7 @@ SELECT
     wskaznik_zwrotow        AS "Zwroty %",
     marza_po_kosztach_pct   AS "Marża po kosztach"
 FROM mart.mart_settlement_monthly
+WHERE partner_code = {{partner}}
 ORDER BY period_start DESC, channel_code;
 
 
@@ -93,7 +115,8 @@ ORDER BY period_start DESC, channel_code;
 -- Wizualizacja: Number. Ustaw alert w Metabase: wyślij mail gdy wartość > 0.
 SELECT COUNT(*) AS "Rozliczenia z niezgodną arytmetyką"
 FROM mart.mart_settlement_monthly
-WHERE NOT (kontrola_saldo_ok AND kontrola_do_zaplaty_ok AND kontrola_prowizji_ok);
+WHERE partner_code = {{partner}}
+  AND NOT (kontrola_saldo_ok AND kontrola_do_zaplaty_ok AND kontrola_prowizji_ok);
 
 
 -- KARTA 1.8 [Wykres liniowy] — Dynamika miesiąc do miesiąca
@@ -103,5 +126,6 @@ SELECT
     zarobek_zmiana_pct         AS "Zmiana zarobku",
     obrot_zmiana_pct           AS "Zmiana obrotu"
 FROM mart.mart_settlement_monthly
-WHERE channel_code = 'MAIN'
+WHERE partner_code = {{partner}}
+  AND channel_code = 'MAIN'
 ORDER BY period_start;

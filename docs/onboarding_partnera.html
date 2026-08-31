@@ -1,0 +1,894 @@
+<title>Onboarding Partnera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+
+<style>
+/* ===== Tokeny: pełna paleta jasna na gołym :root ===== */
+:root {
+  --paper:      #f2f4f7;
+  --surface:    #ffffff;
+  --surface-2:  #e9edf3;
+  --ink:        #161a21;
+  --ink-2:      #3d4655;
+  --muted:      #626e80;
+  --line:       #d6dde7;
+  --line-soft:  #e5eaf1;
+
+  /* atrament księgowy + czerwień korekty — z języka dokumentu rozliczeniowego */
+  --accent:     #27508c;
+  --accent-2:   #3f6fb5;
+  --accent-wash:#e6ecf6;
+  --korekta:    #a83d2b;
+  --korekta-wash:#f8e9e6;
+  --zgoda:      #26694c;
+  --zgoda-wash: #e4f0ea;
+  --uwaga:      #8a6212;
+  --uwaga-wash: #f7efdc;
+
+  --code-bg:    #171c25;
+  --code-ink:   #dbe3ef;
+  --code-line:  #2c3542;
+  --badge-ink:  #ffffff;
+
+  --r: 6px;
+  --step-size: 30px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #0f1218;
+    --surface:    #171b23;
+    --surface-2:  #1e242e;
+    --ink:        #e2e7ef;
+    --ink-2:      #b6c0ce;
+    --muted:      #8794a6;
+    --line:       #2b323e;
+    --line-soft:  #232a35;
+
+    --accent:     #7fa5dd;
+    --accent-2:   #9dbcea;
+    --accent-wash:#1a2534;
+    --korekta:    #e08d7c;
+    --korekta-wash:#2c1d1a;
+    --zgoda:      #79c2a1;
+    --zgoda-wash: #14251d;
+    --uwaga:      #d7ad5c;
+    --uwaga-wash: #2a2213;
+
+    --code-bg:    #10141b;
+    --code-ink:   #cfd8e6;
+    --code-line:  #262e3a;
+    --badge-ink:  #0f1218;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:      #0f1218;
+  --surface:    #171b23;
+  --surface-2:  #1e242e;
+  --ink:        #e2e7ef;
+  --ink-2:      #b6c0ce;
+  --muted:      #8794a6;
+  --line:       #2b323e;
+  --line-soft:  #232a35;
+
+  --accent:     #7fa5dd;
+  --accent-2:   #9dbcea;
+  --accent-wash:#1a2534;
+  --korekta:    #e08d7c;
+  --korekta-wash:#2c1d1a;
+  --zgoda:      #79c2a1;
+  --zgoda-wash: #14251d;
+  --uwaga:      #d7ad5c;
+  --uwaga-wash: #2a2213;
+
+  --code-bg:    #10141b;
+  --code-ink:   #cfd8e6;
+  --code-line:  #262e3a;
+  --badge-ink:  #0f1218;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Szkielet ===== */
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .rail { display: none; }
+}
+
+/* ===== Nagłówek ===== */
+.hero {
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--line);
+  padding: 56px 0 32px;
+  margin-bottom: 48px;
+}
+.eyebrow {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 14px;
+}
+h1 {
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(30px, 4.4vw, 44px);
+  line-height: 1.12;
+  letter-spacing: -.015em;
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+.lede {
+  font-size: 17px;
+  color: var(--ink-2);
+  max-width: 62ch;
+  margin: 0 0 28px;
+}
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.meta b { color: var(--ink-2); font-weight: 500; }
+
+/* ===== Lewa szyna ===== */
+.rail { position: sticky; top: 28px; }
+.rail-title {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.rail ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rail a {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+  padding: 6px 8px 6px 0;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: var(--r);
+  transition: color .12s, background .12s;
+}
+.rail a:hover { color: var(--accent); background: var(--accent-wash); }
+.rail a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rail .n {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== Kroki ===== */
+.step { position: relative; padding-bottom: 44px; }
+.step:not(:last-of-type)::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--step-size) / 2 - 1px);
+  top: var(--step-size);
+  bottom: 8px;
+  width: 2px;
+  background: var(--line-soft);
+}
+.step-head {
+  display: grid;
+  grid-template-columns: var(--step-size) 1fr;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+.badge {
+  width: var(--step-size);
+  height: var(--step-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--badge-ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+h2 {
+  font-family: "IBM Plex Serif", Georgia, serif;
+  font-weight: 600;
+  font-size: 23px;
+  line-height: 1.25;
+  margin: 2px 0 0;
+  letter-spacing: -.01em;
+  text-wrap: balance;
+}
+.step-body { padding-left: calc(var(--step-size) + 16px); }
+@media (max-width: 640px) { .step-body { padding-left: 0; } }
+
+h3 {
+  font-family: "IBM Plex Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  margin: 28px 0 10px;
+  color: var(--ink);
+}
+p { margin: 0 0 14px; max-width: 68ch; }
+a { color: var(--accent); }
+ul, ol.body-list { margin: 0 0 16px; padding-left: 20px; max-width: 68ch; }
+li { margin-bottom: 6px; }
+strong { font-weight: 600; }
+
+code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .875em;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* ===== Bloki kodu ===== */
+.code { margin: 0 0 18px; border-radius: var(--r); overflow: hidden; border: 1px solid var(--code-line); }
+.code-label {
+  background: var(--code-line);
+  color: var(--code-ink);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: .06em;
+  padding: 6px 14px;
+}
+.code pre {
+  margin: 0;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.code pre code { background: none; border: 0; padding: 0; font-size: inherit; color: inherit; }
+.cm { color: #7f8ea3; }
+
+/* ===== Wyróżnienia ===== */
+.note {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-wash);
+  padding: 13px 16px;
+  border-radius: 0 var(--r) var(--r) 0;
+  margin: 0 0 18px;
+  max-width: 68ch;
+}
+.note.warn { border-left-color: var(--korekta); background: var(--korekta-wash); }
+.note.ok   { border-left-color: var(--zgoda);   background: var(--zgoda-wash); }
+.note.tip  { border-left-color: var(--uwaga);   background: var(--uwaga-wash); }
+.note p:last-child { margin-bottom: 0; }
+.note-label {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 5px;
+  color: var(--accent);
+}
+.note.warn .note-label { color: var(--korekta); }
+.note.ok   .note-label { color: var(--zgoda); }
+.note.tip  .note-label { color: var(--uwaga); }
+
+/* ===== Tabele ===== */
+.table-scroll { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+th {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: 0; }
+td.num { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+td code { white-space: nowrap; }
+
+.pill {
+  display: inline-block;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: .05em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.pill.ok   { background: var(--zgoda-wash);   color: var(--zgoda); }
+.pill.bad  { background: var(--korekta-wash); color: var(--korekta); }
+.pill.warn { background: var(--uwaga-wash);   color: var(--uwaga); }
+
+/* ===== Karty ===== */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin: 0 0 22px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 15px 17px;
+}
+.card h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: "IBM Plex Sans", sans-serif;
+}
+.card p { font-size: 13px; color: var(--muted); margin: 0; }
+.card .stat {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 25px;
+  font-weight: 500;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  display: block;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+/* ===== Diagram ===== */
+.diagram {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 22px;
+  margin: 0 0 24px;
+  overflow-x: auto;
+}
+.diagram svg { display: block; min-width: 620px; width: 100%; height: auto; }
+
+/* ===== Stopka sekcji ===== */
+.section-rule {
+  grid-column: 1 / -1;
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 8px 0 40px;
+}
+.closing {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--surface);
+  padding: 24px 26px;
+  margin-top: 8px;
+}
+.closing h2 { font-size: 20px; margin-top: 0; }
+</style>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">Procedura · system rozliczeń partnerskich</p>
+    <h1>Onboarding nowego partnera</h1>
+    <p class="lede">
+      Co dokładnie musi się wydarzyć, żeby drugi podmiot wszedł do systemu bez ryzyka
+      pomieszania jego liczb z Twoimi. Kolejność ma znaczenie: dane wchodzą bezpiecznie
+      od pierwszego dnia, ale dashboardy bez przygotowania zaczynają cicho kłamać.
+    </p>
+    <div class="meta">
+      <span><b>Czas:</b> 45–70 min</span>
+      <span><b>Migracje bazy:</b> żadne</span>
+      <span><b>Przestój:</b> brak</span>
+      <span><b>Zweryfikowano:</b> na drugim partnerze w bazie testowej</span>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Kroki procedury">
+    <p class="rail-title">Kroki</p>
+    <ol>
+      <li><a href="#k0"><span class="n">00</span><span>Punkt wyjścia</span></a></li>
+      <li><a href="#k1"><span class="n">01</span><span>Przed wgraniem</span></a></li>
+      <li><a href="#k2"><span class="n">02</span><span>Pierwszy plik</span></a></li>
+      <li><a href="#k3"><span class="n">03</span><span>Kontrola izolacji</span></a></li>
+      <li><a href="#k4"><span class="n">04</span><span>Metabase</span></a></li>
+      <li><a href="#k5"><span class="n">05</span><span>n8n</span></a></li>
+      <li><a href="#k6"><span class="n">06</span><span>Dostęp i poufność</span></a></li>
+      <li><a href="#k7"><span class="n">07</span><span>Lista kontrolna</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ============ 00 ============ -->
+    <section class="step" id="k0">
+      <div class="step-head">
+        <span class="badge">00</span>
+        <h2>Punkt wyjścia: co sprawdziłem empirycznie</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Zamiast opierać się na założeniach, wstawiłem do bazy testowej drugiego partnera
+          z własnym okresem rozliczeniowym i przepuściłem przez to wszystkie 29 kart
+          dashboardowych. Wynik dzieli się wyraźnie na dwie części.
+        </p>
+
+        <h3>Warstwa danych była gotowa</h3>
+        <p>
+          Model od początku jest wielo-partnerski i nic w nim nie trzeba zmieniać.
+          Żadnej migracji, żadnej zmiany schematu.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Mechanizm</th><th>Jak działa</th></tr></thead>
+            <tbody>
+              <tr><td>Rozpoznanie partnera</td><td>parser czyta kod z komórki „Partner:” w arkuszu Karta, awaryjnie z nazwy pliku</td></tr>
+              <tr><td>Zakładanie partnera</td><td><code>core.partner</code> powstaje automatycznie przy pierwszym pliku — nie ma nic do wyklikania</td></tr>
+              <tr><td>Rozdzielenie rozliczeń</td><td>klucz naturalny <code>(partner, okres, kanał, rewizja)</code></td></tr>
+              <tr><td>Rozdzielenie produktów</td><td><code>(partner_id, index_code)</code> — ten sam indeks u dwóch partnerów to dwa różne produkty</td></tr>
+              <tr><td>Rozdzielenie magazynu</td><td><code>(partner_id, period_id, product_id)</code></td></tr>
+              <tr><td>Trendy i rankingi</td><td>wszystkie funkcje okna partycjonują po <code>partner_id</code></td></tr>
+              <tr><td>Warstwa mart</td><td>każda z 6 tabel niesie <code>partner_id</code> i <code>partner_code</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Dashboardy nie były gotowe</h3>
+        <p>
+          Tu było gorzej, niż zakładałem — i to nie w formie błędów, tylko cichych
+          przekłamań. Oto co faktycznie zwróciły karty po dodaniu drugiego partnera:
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Karta</th><th>Co pokazała</th><th>Objaw</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1.1 — Do zapłaty</td>
+                <td>kwotę drugiego partnera</td>
+                <td><span class="pill bad">ciche przekłamanie</span> żadnego komunikatu</td>
+              </tr>
+              <tr>
+                <td>1.3 — Obrót w czasie</td>
+                <td>trzy słupki z dwóch różnych firm na jednym wykresie</td>
+                <td><span class="pill bad">ciche przekłamanie</span></td>
+              </tr>
+              <tr>
+                <td>2.1–2.7, 3.1–3.7</td>
+                <td>dane niewłaściwego miesiąca</td>
+                <td><span class="pill bad">błąd występował już przy jednym partnerze</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">Błąd, który działał u Ciebie zanim pojawił się drugi partner</span>
+          <p>
+            Czternaście kart wybierało „ostatni okres” przez <code>max(period_id)</code>.
+            <code>period_id</code> to klucz sztuczny nadawany w kolejności <em>wczytania</em>
+            plików, a nie chronologicznie. Ponieważ wgrałeś lipiec przed czerwcem, klucze
+            wyszły 1 = lipiec, 2 = czerwiec — i <code>max</code> wskazywał czerwiec.
+            Dashboardy Produkty i Magazyn pokazywały dane o miesiąc starsze.
+          </p>
+          <p>
+            Poprawione: wszystkie karty wybierają teraz okres po <code>period_start</code>,
+            czyli po prawdziwej dacie, i robią to w obrębie jednego partnera. Zweryfikowane —
+            karta 2.1 pokazuje 2026-07.
+          </p>
+        </div>
+
+        <div class="note ok">
+          <span class="note-label">Najważniejsza własność bezpieczeństwa</span>
+          <p>
+            Wgranie pliku nowego partnera <strong>nie może uszkodzić danych ZZMP1</strong>.
+            Nowy partner to nowe wiersze z innym <code>partner_id</code> — ładowanie działa
+            w jednej transakcji, a wszystkie operacje <code>DELETE</code> w loaderze są
+            ograniczone do <code>partner_id</code> i okresu z wgrywanego pliku. Nawet plik
+            o nieoczekiwanej strukturze skończy jako <code>failed</code> w kwarantannie,
+            nie tknąwszy istniejących rozliczeń.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 01 ============ -->
+    <section class="step" id="k1">
+      <div class="step-head">
+        <span class="badge">01</span>
+        <h2>Zanim wgrasz pierwszy plik</h2>
+      </div>
+      <div class="step-body">
+        <h3>1.1 Sprawdź, jaki kod partnera jest w pliku</h3>
+        <p>
+          To jedyna rzecz, którą warto zobaczyć wcześniej — kod z komórki „Partner:”
+          stanie się identyfikatorem w całym systemie i pojawi się we wszystkich filtrach.
+          Otwórz arkusz <strong>Karta</strong>, wiersz „Partner:”. Zapisz tę wartość.
+        </p>
+        <div class="note tip">
+          <span class="note-label">Jeśli w pliku nie ma kodu partnera</span>
+          <p>
+            Parser sięgnie wtedy po nazwę pliku, oczekując wzorca
+            <code>Rozliczenie_RRRRMmm_KOD.xlsx</code>. Gdy i to zawiedzie, plik trafia do
+            kwarantanny z czytelnym komunikatem — nic nie wejdzie do bazy „na ślepo”
+            pod przypadkowym kodem.
+          </p>
+        </div>
+
+        <h3>1.2 Zrób kopię zapasową</h3>
+        <p>Trzydzieści sekund, a daje punkt powrotu na wypadek pomyłki w kodzie partnera.</p>
+        <div class="code">
+          <div class="code-label">terminal · NA SERWERZE</div>
+          <pre><code>PG=$(docker ps --format '{{.Names}}' | grep -i postgres | head -1)
+docker exec "$PG" pg_dumpall -U settlements \
+  | gzip &gt; przed_partnerem_$(date +%Y%m%d).sql.gz
+ls -lh przed_partnerem_*.sql.gz</code></pre>
+        </div>
+
+        <h3>1.3 Ustal zakres historii</h3>
+        <p>
+          Zdecyduj, ile miesięcy wstecz chcesz wczytać. Trendy miesiąc do miesiąca dla
+          nowego partnera zaczną działać dopiero od drugiego okresu, a klasyfikacja ABC
+          i rekomendacje magazynowe są liczone w obrębie pojedynczego okresu, więc działają
+          od razu. Kolejność wgrywania nie ma znaczenia — okres bierze się z zawartości pliku.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 02 ============ -->
+    <section class="step" id="k2">
+      <div class="step-head">
+        <span class="badge">02</span>
+        <h2>Wgranie pierwszego pliku</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Użyj formularza na <code>https://rozliczenia.lortechsolutions.com/</code>
+          (login <code>admin</code>). Nie musisz nic wcześniej zakładać — partner powstanie sam.
+        </p>
+        <p>W odpowiedzi sprawdź <strong>cztery</strong> rzeczy, w tej kolejności:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Pole</th><th>Oczekiwana wartość</th><th>Jeśli inaczej</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>partner_code</code></td>
+                <td>kod z punktu 1.1</td>
+                <td><strong>zatrzymaj się</strong> — patrz ramka poniżej</td>
+              </tr>
+              <tr><td><code>status</code></td><td><span class="pill ok">processed</span></td><td>przeczytaj <code>message</code>, plik jest w kwarantannie</td></tr>
+              <tr><td><code>checks_failed</code></td><td><code>0</code></td><td>arytmetyka w pliku się nie spina — do wyjaśnienia z nadawcą</td></tr>
+              <tr><td><code>dbt_status</code></td><td><span class="pill ok">success</span></td><td>dane są w bazie, ale dashboardy pokażą stare liczby</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note warn">
+          <span class="note-label">Gdy kod partnera wyszedł nie taki, jak trzeba</span>
+          <p>
+            Nie wgrywaj kolejnych plików — najpierw popraw. Usunięcie błędnego partnera
+            jest bezpieczne, bo jego dane są całkowicie odseparowane:
+          </p>
+          <pre style="margin:10px 0 0;background:var(--code-bg);color:var(--code-ink);padding:12px;border-radius:6px;overflow-x:auto;font-family:'IBM Plex Mono',monospace;font-size:12.5px">docker exec -it "$PG" psql -U settlements -d settlements
+
+BEGIN;
+DELETE FROM core.settlement WHERE partner_id =
+  (SELECT partner_id FROM core.partner WHERE partner_code='ZLY_KOD');
+DELETE FROM core.stock_snapshot WHERE partner_id =
+  (SELECT partner_id FROM core.partner WHERE partner_code='ZLY_KOD');
+DELETE FROM core.product WHERE partner_id =
+  (SELECT partner_id FROM core.partner WHERE partner_code='ZLY_KOD');
+DELETE FROM core.partner WHERE partner_code='ZLY_KOD';
+COMMIT;</pre>
+          <p style="margin-top:10px">
+            Potem usuń wpis pliku z <code>raw.ingested_file</code> (albo wgraj ponownie
+            z <code>--force</code>), popraw kod w pliku lub w jego nazwie i powtórz.
+          </p>
+        </div>
+
+        <p>
+          Pozostałe miesiące wgraj tak samo, albo hurtowo z terminala — wtedy dbt przeliczy
+          się raz, na końcu:
+        </p>
+        <div class="code">
+          <div class="code-label">terminal Coolify · usługa ingest</div>
+          <pre><code>python -m app.cli backfill /data/archive/nowy_partner/
+python -m app.cli status</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 ============ -->
+    <section class="step" id="k3">
+      <div class="step-head">
+        <span class="badge">03</span>
+        <h2>Kontrola izolacji danych</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Zanim ruszysz dashboardy, potwierdź na bazie, że dane obu partnerów stoją obok
+          siebie, a nie na sobie. Trzy zapytania.
+        </p>
+        <div class="code">
+          <div class="code-label">psql · w kontenerze postgres</div>
+          <pre><code><span class="cm">-- 1. Rozliczenia obu partnerów, każde na swoim wierszu</span>
+SELECT pa.partner_code, p.period_label, s.channel_code,
+       round(s.do_zaplaty, 2) AS do_zaplaty
+  FROM core.settlement s
+  JOIN core.partner pa USING (partner_id)
+  JOIN core.period  p  USING (period_id)
+ WHERE s.is_current
+ ORDER BY pa.partner_code, p.period_label;
+
+<span class="cm">-- 2. Kwoty ZZMP1 nie drgnęły (porównaj z tym, co znasz)</span>
+SELECT period_label, round(do_zaplaty_razem, 2)
+  FROM mart.mart_partner_pnl
+ WHERE partner_code = 'ZZMP1'
+ ORDER BY period_start;
+
+<span class="cm">-- 3. Ten sam indeks u dwóch partnerów to dwa osobne produkty</span>
+SELECT index_code, count(*) AS liczba_partnerow
+  FROM core.product
+ GROUP BY index_code HAVING count(*) &gt; 1
+ LIMIT 5;</code></pre>
+        </div>
+        <p>
+          Zapytanie 2 musi zwrócić dokładnie te same kwoty co przed onboardingiem.
+          Zapytanie 3 może zwrócić wiersze i to <strong>poprawne</strong> — oznacza tylko,
+          że obaj partnerzy używają tego samego kodu indeksu na różne towary; rekord
+          w <code>core.product</code> jest osobny dla każdego z nich.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 04 ============ -->
+    <section class="step" id="k4">
+      <div class="step-head">
+        <span class="badge">04</span>
+        <h2>Metabase: filtr partnera w każdej karcie</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          To jest krok, którego <strong>nie wolno pominąć</strong> — bez niego karty nie
+          zgłoszą błędu, tylko podadzą liczby niewłaściwego podmiotu. Zaktualizowane
+          zapytania w <code>metabase/sql/</code> mają już wbudowany filtr.
+        </p>
+
+        <h3>4.1 Dodaj zmienną do każdej karty</h3>
+        <p>Otwórz kartę → wklej nowe zapytanie → w panelu <strong>Variables</strong>:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Pole</th><th>Wartość</th></tr></thead>
+            <tbody>
+              <tr><td>Nazwa zmiennej</td><td><code>partner</code></td></tr>
+              <tr><td>Variable type</td><td>Text</td></tr>
+              <tr><td>Required</td><td><strong>zaznaczone</strong></td></tr>
+              <tr><td>Default filter widget value</td><td><code>ZZMP1</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          <span class="note-label">Dlaczego wymagana, a nie opcjonalna</span>
+          <p>
+            Metabase pozwala robić filtry opcjonalne w składni <code>[[AND …]]</code>.
+            Tutaj byłoby to niebezpieczne: pusty filtr oznaczałby „wszyscy partnerzy”,
+            czyli dokładnie ten cichy błąd, który eliminujemy. Wymagana zmienna
+            z domyślną wartością daje ten sam komfort bez ryzyka.
+          </p>
+        </div>
+        <p>
+          Karta 2.6 (historia produktu) potrzebuje drugiej zmiennej — <code>indeks</code>,
+          też typu Text i wymaganej.
+        </p>
+
+        <h3>4.2 Podepnij filtr na poziomie dashboardu</h3>
+        <p>
+          Zamiast przełączać partnera w każdej karcie osobno, zrób to raz dla całego
+          dashboardu:
+        </p>
+        <ol class="body-list">
+          <li>Otwórz dashboard → ikona ołówka (edycja) → ikona filtra → <strong>Text or Category → Is</strong>.</li>
+          <li>Nazwij go „Partner”.</li>
+          <li>Dla <strong>każdej</strong> karty na dashboardzie wskaż w kolumnie mapowania zmienną <code>partner</code>.</li>
+          <li>Ustaw wartość domyślną filtra na <code>ZZMP1</code> i zapisz.</li>
+        </ol>
+        <div class="note warn">
+          <span class="note-label">Karta bez zmapowanego filtra jest cichą pułapką</span>
+          <p>
+            Metabase nie ostrzeże, jeśli zapomnisz zmapować jedną kartę — pokaże ona po
+            prostu swoją wartość domyślną, niezależnie od tego, co wybrałeś w filtrze.
+            Po zapisaniu przełącz filtr na drugiego partnera i sprawdź, czy <em>wszystkie</em>
+            kafelki się zmieniły. Ten, który się nie zmienił, nie jest zmapowany.
+          </p>
+        </div>
+
+        <h3>4.3 Dashboard operacyjny zostaje wspólny</h3>
+        <p>
+          Czwarty dashboard (Proces) celowo nie ma filtra partnera — dotyczy zdrowia
+          pipeline'u, a nie finansów jednego podmiotu. Karty 4.4, 4.5 i 4.6 mają teraz
+          kolumnę <strong>Partner</strong>, żeby przy kilku podmiotach było widać, którego
+          dotyczy brak rozliczenia lub korekta.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 05 ============ -->
+    <section class="step" id="k5">
+      <div class="step-head">
+        <span class="badge">05</span>
+        <h2>n8n: odbiór maili i kontrola terminowości</h2>
+      </div>
+      <div class="step-body">
+        <h3>5.1 Filtr nadawcy</h3>
+        <p>
+          Węzeł <em>Czy to rozliczenie?</em> porównuje nadawcę ze zmienną
+          <code>NADAWCA_ROZLICZEN</code>. Jeśli rozliczenia obu partnerów przychodzą
+          od tego samego nadawcy — nic nie zmieniasz, parser sam rozróżni je po zawartości.
+        </p>
+        <p>Jeśli nadawca jest inny, masz dwie drogi:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Wariant</th><th>Jak</th><th>Kiedy wybrać</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Jeden workflow, dwóch nadawców</td>
+                <td>zmień warunek na <code>Is one of</code> i podaj oba adresy</td>
+                <td>domyślnie — mniej do utrzymania, jedna historia wykonań</td>
+              </tr>
+              <tr>
+                <td>Osobny workflow na partnera</td>
+                <td>duplikuj workflow, zmień skrzynkę i adres powiadomień</td>
+                <td>gdy pliki idą na różne skrzynki albo alerty mają trafiać do różnych osób</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>5.2 Kontrola „czy rozliczenie dotarło”</h3>
+        <p>
+          Węzeł <em>Czy okres jest w bazie?</em> odpytuje <code>GET /status/okres</code>.
+          Bez parametru sprawdza <strong>wszystkich</strong> partnerów łącznie — czyli
+          rozliczenie od jednego zamaskuje brak od drugiego. Endpoint przyjmuje parametr
+          <code>partner</code>; dodaj go w węźle HTTP Request:
+        </p>
+        <div class="code">
+          <div class="code-label">n8n · Query Parameters węzła „Czy okres jest w bazie?”</div>
+          <pre><code>miesiecy_wstecz = 1
+partner         = ZZMP1</code></pre>
+        </div>
+        <p>
+          Dla drugiego partnera zduplikuj gałąź harmonogramu z inną wartością
+          <code>partner</code>, albo — prościej — usuń ten węzeł z n8n i oprzyj się na
+          alercie z karty 4.4 w Metabase, która jest już rozbita na partnerów.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 06 ============ -->
+    <section class="step" id="k6">
+      <div class="step-head">
+        <span class="badge">06</span>
+        <h2>Dostęp i poufność</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Ustaliliśmy, że partnerzy mogą widzieć swoje dane nawzajem — to zdejmuje
+          z tego kroku praktycznie całą pracę. Poniżej dla porządku granice tego
+          założenia.
+        </p>
+
+        <h3>Twoja decyzja: partnerzy mogą widzieć swoje dane nawzajem</h3>
+        <div class="note ok">
+          <span class="note-label">To upraszcza krok 06 do zera</span>
+          <p>
+            Skoro wzajemna widoczność jest akceptowalna, nie ma tu nic do zrobienia —
+            kroki 01–05 wystarczą. Filtr <code>{{partner}}</code> jest wtedy wygodą
+            nawigacyjną, a nie mechanizmem bezpieczeństwa: pozwala szybko przełączyć
+            dashboard na drugi podmiot, ale nikogo przed niczym nie chroni.
+          </p>
+        </div>
+        <p>
+          Warto tylko wiedzieć, gdzie leży granica tego założenia, gdyby kiedyś się
+          zmieniło:
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Co widzi użytkownik Metabase</th><th>Zakres</th></tr></thead>
+            <tbody>
+              <tr><td>Dashboard z filtrem partnera</td><td>dowolny partner — filtr da się przestawić</td></tr>
+              <tr><td>Edytor SQL</td><td>wszystko w schematach <code>mart</code>, <code>core</code>, <code>ops</code> — filtr go nie obowiązuje</td></tr>
+              <tr><td>Przeglądarka danych</td><td>wszystkie tabele podpiętej bazy</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Gdyby izolacja stała się kiedyś potrzebna</span>
+          <p>
+            Zabezpieczenie na poziomie wierszy (row and column security) jest w Metabase
+            dostępne wyłącznie w planach Pro i Enterprise — w wersji open source, którą
+            masz, nie da się go włączyć. Alternatywy bez zmiany licencji: subskrypcje
+            mailowe z filtrem ustawionym na danego partnera (partner nie dostaje konta),
+            albo osobne role w Postgresie z politykami RLS i osobnym połączeniem
+            w Metabase dla każdego partnera.
+          </p>
+          <p>
+            Przy wariancie z RLS jest haczyk, o którym łatwo zapomnieć: dbt przebudowuje
+            tabele <code>mart</code> przy każdym wgraniu pliku, a <code>DROP</code> kasuje
+            polityki razem z tabelą. Trzeba je odtwarzać hookiem <code>on-run-end</code>
+            w <code>dbt_project.yml</code> — inaczej izolacja zniknie po pierwszym
+            rozliczeniu i nikt tego nie zauważy.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 07 ============ -->
+    <section class="step" id="k7">
+      <div class="step-head">
+        <span class="badge">07</span>
+        <h2>Lista kontrolna</h2>
+      </div>
+      <div class="step-body">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Sprawdzenie</th><th>Oczekiwany wynik</th></tr></thead>
+            <tbody>
+              <tr><td>Kopia zapasowa przed onboardingiem</td><td>plik <code>.sql.gz</code> na dysku</td></tr>
+              <tr><td>Pierwszy plik nowego partnera</td><td><span class="pill ok">processed</span>, kod partnera zgodny z oczekiwanym</td></tr>
+              <tr><td>Kwoty ZZMP1 po onboardingu</td><td>identyczne co do grosza jak przed</td></tr>
+              <tr><td>Rozliczenia w bazie</td><td>osobne wiersze na partnera, żadnego mieszania</td></tr>
+              <tr><td>Wszystkie karty 1.x–3.x</td><td>mają zmienną <code>partner</code>, wymaganą</td></tr>
+              <tr><td>Filtr dashboardu zmapowany</td><td>przełączenie partnera zmienia <strong>każdy</strong> kafelek</td></tr>
+              <tr><td>Karta 2.1 po zmianie filtra</td><td>najnowszy miesiąc <em>tego</em> partnera</td></tr>
+              <tr><td>Karta 4.4</td><td>osobny wiersz na partnera</td></tr>
+              <tr><td>Filtr nadawcy w n8n</td><td>przepuszcza maile obu partnerów</td></tr>
+              <tr><td>Dostęp partnerów</td><td>wzajemna widoczność zaakceptowana — brak dodatkowej pracy</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="closing" style="margin-top:28px">
+          <h2>Czego robić NIE trzeba</h2>
+          <p>
+            Warto wiedzieć, ile z tego <em>nie</em> jest potrzebne — to miara tego, jak
+            dobrze model zniósł rozszerzenie:
+          </p>
+          <ul style="margin-bottom:0">
+            <li>żadnych migracji ani zmian schematu bazy</li>
+            <li>żadnego drugiego stacku, bazy czy instancji Metabase</li>
+            <li>żadnych zmian w parserze, loaderze ani modelach dbt</li>
+            <li>żadnego ręcznego zakładania partnera — powstaje z pierwszego pliku</li>
+            <li>żadnego przestoju: dane nowego partnera wchodzą przy działającym systemie</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>

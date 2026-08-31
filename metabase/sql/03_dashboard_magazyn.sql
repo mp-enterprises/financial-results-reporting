@@ -1,4 +1,19 @@
 -- =============================================================================
+-- FILTR PARTNERA — obowiązkowy w każdej karcie
+--
+-- W Metabase dodaj do każdej karty zmienną tekstową {{partner}}:
+--   Variables -> partner -> Variable type: Text -> Required -> Default: ZZMP1
+--
+-- Dlaczego obowiązkowy, a nie opcjonalny: przy dwóch partnerach karta bez
+-- filtra po cichu miesza dane dwóch firm na jednym wykresie albo pokazuje
+-- wynik nie tego podmiotu, o który pytasz — bez żadnego sygnału błędu.
+--
+-- OSTATNI OKRES liczymy po period_start (prawdziwej dacie), NIGDY po
+-- max(period_id). period_id to klucz sztuczny nadawany w kolejności wczytania
+-- plików — po wgraniu historii wstecz wskazuje niewłaściwy miesiąc.
+-- =============================================================================
+
+-- =============================================================================
 -- DASHBOARD 3: "Magazyn" — kapitał zamrożony i ryzyko braków
 -- To jest dashboard, na którym najszybciej widać pieniądze do odzyskania.
 -- =============================================================================
@@ -12,7 +27,9 @@ SELECT
     COUNT(*)                                                  AS "Pozycji (SKU)",
     COUNT(*) FILTER (WHERE flaga_dozamowic)                   AS "Do dozamówienia"
 FROM mart.mart_stock_health
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_stock_health);
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_stock_health
+                            WHERE partner_code = {{partner}});
 
 
 -- KARTA 3.2 [Wykres kołowy] — Struktura magazynu wg rotacji
@@ -23,7 +40,9 @@ SELECT
     SUM(wartosc_zakupu)     AS "Wartość zakupu",
     SUM(stan_szt)           AS "Sztuk"
 FROM mart.mart_stock_health
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_stock_health)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_stock_health
+                            WHERE partner_code = {{partner}})
 GROUP BY kategoria_rotacji
 ORDER BY SUM(wartosc_zakupu) DESC;
 
@@ -39,7 +58,9 @@ SELECT
     wystarczy_na_dni AS "Wystarczy na (dni)",
     rekomendacja     AS "Rekomendacja"
 FROM mart.mart_stock_health
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_stock_health)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_stock_health
+                            WHERE partner_code = {{partner}})
   AND flaga_martwy
 ORDER BY wartosc_zakupu DESC
 LIMIT 30;
@@ -59,7 +80,9 @@ SELECT
     CEIL(GREATEST(srednia_dzienna * 90 - stan_szt, 0))  AS "Sugerowane zamówienie (90 dni)",
     rekomendacja              AS "Rekomendacja"
 FROM mart.mart_stock_health
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_stock_health)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_stock_health
+                            WHERE partner_code = {{partner}})
   AND flaga_dozamowic
 ORDER BY wystarczy_na_dni ASC NULLS LAST
 LIMIT 50;
@@ -75,7 +98,9 @@ SELECT
     wartosc_zakupu       AS "Wartość na stanie",
     kategoria_rotacji    AS "Kategoria"
 FROM mart.mart_stock_health
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_stock_health)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_stock_health
+                            WHERE partner_code = {{partner}})
   AND wystarczy_na_dni IS NOT NULL
   AND sprzedaz_marza_pct IS NOT NULL
 ORDER BY wartosc_zakupu DESC
@@ -89,6 +114,7 @@ SELECT
     SUM(wartosc_zakupu) FILTER (WHERE flaga_martwy)  AS "Martwy stok",
     SUM(kapital_nadmiarowy)                          AS "Kapitał nadmiarowy"
 FROM mart.mart_stock_health
+WHERE partner_code = {{partner}}
 GROUP BY period_label, period_start
 ORDER BY period_start;
 
@@ -100,6 +126,8 @@ SELECT
     SUM(wartosc_zakupu)   AS "Wartość zakupu",
     SUM(stan_szt)         AS "Sztuk"
 FROM mart.mart_stock_health
-WHERE period_id = (SELECT max(period_id) FROM mart.mart_stock_health)
+WHERE partner_code = {{partner}}
+  AND period_start = (SELECT max(period_start) FROM mart.mart_stock_health
+                            WHERE partner_code = {{partner}})
 GROUP BY rekomendacja
 ORDER BY SUM(wartosc_zakupu) DESC;

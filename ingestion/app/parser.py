@@ -36,6 +36,13 @@ OPTIONAL_SHEETS = {SHEET_HOWTO, SHEET_KARTA_MJ, SHEET_STOK}
 KNOWN_SHEETS = REQUIRED_SHEETS | OPTIONAL_SHEETS
 
 
+# --- limity odporności na nieoczekiwaną zawartość --------------------------
+# Nadawca może kiedyś dołożyć arkusz o dowolnej wielkości. Zrzut do raw jest
+# cenny dla audytu, ale nie może wysadzić pamięci workera ani rozdąć bazy.
+MAX_WIERSZY_ZRZUTU = 20_000      # na arkusz, w zrzucie do raw.sheet_payload
+MAX_ARKUSZY = 40                 # powyżej tego plik jest podejrzany
+
+
 class ParseError(ValueError):
     """Plik nie odpowiada oczekiwanej strukturze — nie wolno go załadować."""
 
@@ -190,8 +197,14 @@ def parse_period(text: Any) -> tuple[int, int] | None:
     return year, month
 
 
-def _rows(ws) -> list[list[Any]]:
-    return [list(r) for r in ws.iter_rows(values_only=True)]
+def _rows(ws, limit: int | None = None) -> list[list[Any]]:
+    """Wiersze arkusza; z limitem, gdy arkusz jest nieznany i może być ogromny."""
+    out: list[list[Any]] = []
+    for i, r in enumerate(ws.iter_rows(values_only=True)):
+        if limit is not None and i >= limit:
+            break
+        out.append(list(r))
+    return out
 
 
 def _find_label(rows: Iterable[list[Any]], *candidates: str,
@@ -288,6 +301,92 @@ def parse_karta_mj(rows: list[list[Any]]) -> SettlementFacts:
 
 
 # --- tabele -----------------------------------------------------------------
+# Mapy kolumn: klucz logiczny -> lista dopuszczalnych etykiet (znormalizowanych).
+# Kolejność w liście to kolejność dopasowania; pierwsza pasująca wygrywa.
+KOLUMNY_RAPORT: dict[str, list[str]] = {
+    "index_code":   ["indeks", "indeks towaru", "sku", "kod"],
+    "product_name": ["nazwa", "nazwa towaru", "opis"],
+    "quantity":     ["ilosc", "ilosc szt", "sztuk"],
+    "unit_price":   ["cena", "cena srednia", "srednia cena"],
+    "net_value":    ["wartosc", "wartosc netto", "obrot"],
+    "profit":       ["zysk", "zysk netto", "marza"],
+}
+WYMAGANE_RAPORT = ["index_code", "net_value", "profit"]
+
+KOLUMNY_STOK: dict[str, list[str]] = {
+    "index_code":     ["indeks", "indeks towaru", "sku", "kod"],
+    "product_name":   ["nazwa", "nazwa towaru", "opis"],
+    "qty_on_hand":    ["stan szt", "stan", "ilosc", "stan magazynowy"],
+    "purchase_value": ["wartosc zakupu", "wartosc", "wartosc magazynu"],
+    "sales_month":    ["sprzedaz w miesiacu", "sprzedaz miesiac", "sprzedaz 1 mies"],
+    "sales_3m":       ["sprzedaz 3 mies", "sprzedaz 3m", "sprzedaz kwartal"],
+    "sales_total":    ["sprzedaz lacznie", "sprzedaz razem", "sprzedaz calkowita"],
+    "avg_daily":      ["sr dziennie", "srednia dziennie", "srednio dziennie"],
+    "days_cover":     ["wystarczy na dni", "wystarczy na", "dni pokrycia"],
+    "stock_status":   ["status", "status rotacji"],
+}
+WYMAGANE_STOK = ["index_code", "qty_on_hand", "purchase_value"]
+
+
+def _mapuj_kolumny(naglowek: list[Any], definicje: dict[str, list[str]],
+                   wymagane: list[str], arkusz: str,
+                   ostrzezenia: list[str]) -> dict[str, int]:
+    """Buduje mapę: klucz logiczny -> indeks kolumny, na podstawie ETYKIET.
+
+    To jest zabezpieczenie przed najgroźniejszą zmianą, jaką nadawca może
+    wprowadzić: wstawieniem albo przestawieniem kolumny. Odczyt po stałych
+    pozycjach przesunąłby wtedy wszystkie wartości i załadował do bazy ciche
+    przekłamania — cena trafiłaby do wartości, wartość do zysku.
+    """
+    etykiety = {}
+    for idx, komorka in enumerate(naglowek):
+        klucz = normalize(komorka)
+        if klucz and klucz not in etykiety:
+            etykiety[klucz] = idx
+
+    mapa: dict[str, int] = {}
+    for logiczna, warianty in definicje.items():
+        for wariant in warianty:                       # najpierw trafienie dokładne
+            if wariant in etykiety:
+                mapa[logiczna] = etykiety[wariant]
+                break
+        else:
+            for wariant in warianty:                   # potem po przedrostku
+                trafienia = [i for e, i in etykiety.items() if e.startswith(wariant)]
+                if len(trafienia) == 1:
+                    mapa[logiczna] = trafienia[0]
+                    break
+
+    brakujace = [k for k in wymagane if k not in mapa]
+    if brakujace:
+        raise ParseError(
+            f"Arkusz {arkusz}: nie rozpoznano wymaganych kolumn {brakujace}. "
+            f"Znalezione nagłówki: {sorted(etykiety)}"
+        )
+
+    opcjonalne_brak = [k for k in definicje if k not in mapa]
+    if opcjonalne_brak:
+        ostrzezenia.append(
+            f"Arkusz {arkusz}: brak opcjonalnych kolumn {opcjonalne_brak} — "
+            f"te pola zostaną puste."
+        )
+
+    nadmiarowe = sorted(set(etykiety) - {w for v in definicje.values() for w in v})
+    if nadmiarowe:
+        ostrzezenia.append(
+            f"Arkusz {arkusz}: nowe, nieużywane kolumny {nadmiarowe} — pominięte."
+        )
+    return mapa
+
+
+def _kom(row: list[Any], mapa: dict[str, int], klucz: str) -> Any:
+    """Wartość komórki po kluczu logicznym; None gdy kolumny nie ma w pliku."""
+    idx = mapa.get(klucz)
+    if idx is None or idx >= len(row):
+        return None
+    return row[idx]
+
+
 def _find_header_row(rows: list[list[Any]], first_cell: str, min_cols: int) -> int:
     target = normalize(first_cell)
     for i, row in enumerate(rows):
@@ -296,35 +395,46 @@ def _find_header_row(rows: list[list[Any]], first_cell: str, min_cols: int) -> i
     raise ParseError(f"Nie znaleziono wiersza nagłówkowego zaczynającego się od {first_cell!r}")
 
 
-def parse_raport(rows: list[list[Any]]) -> tuple[list[SalesLine], dict[str, Any]]:
+def parse_raport(rows: list[list[Any]],
+                 ostrzezenia: list[str] | None = None) -> tuple[list[SalesLine], dict[str, Any]]:
+    ostrzezenia = ostrzezenia if ostrzezenia is not None else []
     header_idx = _find_header_row(rows, "Indeks", 5)
+    mapa = _mapuj_kolumny(rows[header_idx], KOLUMNY_RAPORT, WYMAGANE_RAPORT,
+                          "Raport", ostrzezenia)
 
+    # Suma kontrolna „RAZEM” stoi nad nagłówkiem, więc trafia w te same kolumny.
     totals: dict[str, Any] = {}
     for row in rows[:header_idx]:
         if row and normalize(row[0]) == "razem":
             totals = {
-                "quantity": to_int(row[2]) if len(row) > 2 else None,
-                "net_value": to_decimal(row[4]) if len(row) > 4 else None,
-                "profit": to_decimal(row[5]) if len(row) > 5 else None,
+                "quantity":  to_int(_kom(row, mapa, "quantity")),
+                "net_value": to_decimal(_kom(row, mapa, "net_value")),
+                "profit":    to_decimal(_kom(row, mapa, "profit")),
             }
             break
 
     lines: list[SalesLine] = []
     for n, row in enumerate(rows[header_idx + 1:], start=1):
-        if not row or row[0] is None or str(row[0]).strip() == "":
+        if not row:
             continue
-        code = str(row[0]).strip()
+        surowy_kod = _kom(row, mapa, "index_code")
+        if surowy_kod is None or str(surowy_kod).strip() == "":
+            continue
+        code = str(surowy_kod).strip()
         if normalize(code) in {"razem", "suma", "total"}:
             continue
-        net = to_decimal(row[4]) if len(row) > 4 else None
-        profit = to_decimal(row[5]) if len(row) > 5 else None
+
+        net = to_decimal(_kom(row, mapa, "net_value"))
+        profit = to_decimal(_kom(row, mapa, "profit"))
         if net is None and profit is None:
             continue
+
+        nazwa = _kom(row, mapa, "product_name")
         lines.append(SalesLine(
             index_code=code,
-            product_name=str(row[1]).strip() if len(row) > 1 and row[1] is not None else None,
-            quantity=to_int(row[2]) or 0,
-            unit_price=to_decimal(row[3]) if len(row) > 3 else None,
+            product_name=str(nazwa).strip() if nazwa is not None else None,
+            quantity=to_int(_kom(row, mapa, "quantity")) or 0,
+            unit_price=to_decimal(_kom(row, mapa, "unit_price")),
             net_value=net if net is not None else Decimal(0),
             profit=profit if profit is not None else Decimal(0),
             line_no=n,
@@ -334,29 +444,40 @@ def parse_raport(rows: list[list[Any]]) -> tuple[list[SalesLine], dict[str, Any]
     return lines, totals
 
 
-def parse_stok(rows: list[list[Any]]) -> list[StockLine]:
+def parse_stok(rows: list[list[Any]],
+               ostrzezenia: list[str] | None = None) -> list[StockLine]:
+    ostrzezenia = ostrzezenia if ostrzezenia is not None else []
     header_idx = _find_header_row(rows, "Indeks", 8)
+    mapa = _mapuj_kolumny(rows[header_idx], KOLUMNY_STOK, WYMAGANE_STOK,
+                          "Stok", ostrzezenia)
+
     lines: list[StockLine] = []
     for row in rows[header_idx + 1:]:
-        if not row or row[0] is None or str(row[0]).strip() == "":
+        if not row:
             continue
-        code = str(row[0]).strip()
+        surowy_kod = _kom(row, mapa, "index_code")
+        if surowy_kod is None or str(surowy_kod).strip() == "":
+            continue
+        code = str(surowy_kod).strip()
         if normalize(code) in {"razem", "suma", "total"}:
             continue
-        raw_cover = row[8] if len(row) > 8 else None
+
+        raw_cover = _kom(row, mapa, "days_cover")
         capped = isinstance(raw_cover, str) and raw_cover.strip().startswith(">")
+        nazwa = _kom(row, mapa, "product_name")
+        status = _kom(row, mapa, "stock_status")
         lines.append(StockLine(
             index_code=code,
-            product_name=str(row[1]).strip() if len(row) > 1 and row[1] is not None else None,
-            qty_on_hand=to_int(row[2]) or 0,
-            purchase_value=to_decimal(row[3]) or Decimal(0),
-            sales_month=to_int(row[4]) or 0,
-            sales_3m=to_int(row[5]) or 0,
-            sales_total=to_int(row[6]) or 0,
-            avg_daily=to_decimal(row[7]) if len(row) > 7 else None,
+            product_name=str(nazwa).strip() if nazwa is not None else None,
+            qty_on_hand=to_int(_kom(row, mapa, "qty_on_hand")) or 0,
+            purchase_value=to_decimal(_kom(row, mapa, "purchase_value")) or Decimal(0),
+            sales_month=to_int(_kom(row, mapa, "sales_month")) or 0,
+            sales_3m=to_int(_kom(row, mapa, "sales_3m")) or 0,
+            sales_total=to_int(_kom(row, mapa, "sales_total")) or 0,
+            avg_daily=to_decimal(_kom(row, mapa, "avg_daily")),
             days_cover=to_decimal(raw_cover),
             days_cover_capped=capped,
-            stock_status=str(row[9]).strip() if len(row) > 9 and row[9] is not None else None,
+            stock_status=str(status).strip() if status is not None else None,
         ))
     if not lines:
         raise ParseError("Arkusz Stok nie zawiera żadnych pozycji")
@@ -409,7 +530,15 @@ def parse_workbook(path: str | Path, file_name: str | None = None) -> ParsedFile
                 f"Brak wymaganych arkuszy: {sorted(missing)}. Znalezione: {sorted(present)}"
             )
 
-        sheets = {name: _rows(wb[name]) for name in wb.sheetnames}
+        nieznane = [n for n in wb.sheetnames if n not in KNOWN_SHEETS]
+
+        # Arkusze, które znamy, czytamy w całości — na nich stoi rozliczenie.
+        # Nieznane czytamy z limitem: trafiają wyłącznie do zrzutu audytowego,
+        # więc nie ma powodu wciągać do pamięci arkusza o dowolnej wielkości.
+        sheets = {}
+        for name in wb.sheetnames:
+            limit = None if name in KNOWN_SHEETS else MAX_WIERSZY_ZRZUTU
+            sheets[name] = _rows(wb[name], limit)
     finally:
         wb.close()
 
@@ -442,11 +571,32 @@ def parse_workbook(path: str | Path, file_name: str | None = None) -> ParsedFile
         if to_decimal(_find_label(mj_rows, "fv partnera")) is not None:
             settlements["MJ"] = parse_karta_mj(mj_rows)
 
-    sales_lines, raport_totals = parse_raport(sheets[SHEET_RAPORT])
-
     warnings: list[str] = []
+
+    # Nowy arkusz od nadawcy NIE jest błędem — zostaje odnotowany i zarchiwizowany
+    # w raw.sheet_payload, żeby dało się go później przeanalizować i ewentualnie
+    # dopisać obsługę. Rozliczenie liczy się z arkuszy, które znamy.
+    if nieznane:
+        warnings.append(
+            f"Plik zawiera nowe arkusze: {nieznane}. Nie wpływają na rozliczenie, "
+            f"ale zostały zarchiwizowane — sprawdź, czy nadawca nie zmienił formatu."
+        )
+    if len(sheets) > MAX_ARKUSZY:
+        warnings.append(
+            f"Plik ma {len(sheets)} arkuszy (spodziewane do {MAX_ARKUSZY}) — "
+            f"to nietypowe, warto zweryfikować źródło."
+        )
+    for nazwa, wiersze in sheets.items():
+        if nazwa not in KNOWN_SHEETS and len(wiersze) >= MAX_WIERSZY_ZRZUTU:
+            warnings.append(
+                f"Arkusz '{nazwa}' przekroczył {MAX_WIERSZY_ZRZUTU} wierszy — "
+                f"w archiwum zapisano tylko początek."
+            )
+
+    sales_lines, raport_totals = parse_raport(sheets[SHEET_RAPORT], warnings)
+
     if SHEET_STOK in sheets:
-        stock_lines = parse_stok(sheets[SHEET_STOK])
+        stock_lines = parse_stok(sheets[SHEET_STOK], warnings)
     else:
         stock_lines = []
         warnings.append(
@@ -469,7 +619,7 @@ def parse_workbook(path: str | Path, file_name: str | None = None) -> ParsedFile
         raport_totals=raport_totals,
         notes=notes,
         sheet_payloads={
-            name: [[_jsonable(c) for c in row] for row in rows]
+            name: [[_jsonable(c) for c in row] for row in rows[:MAX_WIERSZY_ZRZUTU]]
             for name, rows in sheets.items()
         },
         unknown_sheets=sorted(set(sheets) - KNOWN_SHEETS),
