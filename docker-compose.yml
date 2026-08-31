@@ -4,10 +4,15 @@
 # W Coolify: New Resource -> Docker Compose -> wklej ten plik lub wskaż repo.
 # Zmienne pochodzą z zakładki Environment Variables (patrz .env.example).
 #
-# Publicznie wystawiamy TYLKO:
-#   * metabase  (np. bi.twojadomena.pl)
-#   * ingest    (np. rozliczenia.twojadomena.pl) — chroniony kluczem API i Basic Auth
-# Postgres i n8n zostają w sieci wewnętrznej (n8n opcjonalnie z własną domeną).
+# Publicznie wystawiamy TYLKO dwie usługi (domeny ustawiasz w UI Coolify,
+# w polu "Domains" przy każdej usłudze — patrz runbook, krok 03):
+#   * metabase  ->  https://bi.twojadomena.pl:3000
+#   * ingest    ->  https://rozliczenia.twojadomena.pl:8000
+# Postgres i backup nie mają domeny — są dostępne wyłącznie w sieci Dockera.
+#
+# n8n NIE jest częścią tego stacku: używamy n8n Cloud, który łączy się
+# z workerem przez publiczny HTTPS i klucz API. Jeśli kiedyś zechcesz
+# postawić n8n u siebie, dopisz usługę i podłącz ją do sieci "rozliczenia".
 # =============================================================================
 
 services:
@@ -22,10 +27,9 @@ services:
       # wymusza sensowne kodowanie dla polskich znaków
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
       METABASE_DB: ${METABASE_DB:-metabase}
-      N8N_DB: ${N8N_DB:-n8n}
     volumes:
       - pgdata:/var/lib/postgresql/data
-      # tworzy osobne bazy dla Metabase i n8n przy pierwszym starcie
+      # tworzy osobną bazę dla Metabase przy pierwszym starcie
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-settlements} -d ${POSTGRES_DB:-settlements}"]
@@ -59,8 +63,6 @@ services:
       ARCHIVE_DIR: /data/archive
       RUN_DBT_AFTER_LOAD: "true"
       RECON_TOLERANCE: "0.01"
-      # Coolify: ustaw poniższą zmienną, aby wystawić usługę na domenie
-      SERVICE_FQDN_INGEST: ${INGEST_FQDN:-}
     volumes:
       - archive:/data/archive          # niezmienne archiwum otrzymanych plików
     healthcheck:
@@ -91,43 +93,12 @@ services:
       MB_SITE_LOCALE: pl
       MB_START_OF_WEEK: monday
       JAVA_TIMEZONE: Europe/Warsaw
-      SERVICE_FQDN_METABASE: ${METABASE_FQDN:-}
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 10
       start_period: 120s
-    networks: [rozliczenia]
-
-  # -------------------------------------------------------------------------
-  # n8n — nasłuch skrzynki i wyzwalanie pipeline'u.
-  # Jeśli masz już n8n na Coolify, usuń tę usługę i podłącz istniejącą
-  # instancję do sieci "rozliczenia" (patrz README).
-  # -------------------------------------------------------------------------
-  n8n:
-    image: n8nio/n8n:1.75.2
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_PORT: "5432"
-      DB_POSTGRESDB_DATABASE: ${N8N_DB:-n8n}
-      DB_POSTGRESDB_USER: ${POSTGRES_USER:-settlements}
-      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
-      GENERIC_TIMEZONE: Europe/Warsaw
-      TZ: Europe/Warsaw
-      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?ustaw N8N_ENCRYPTION_KEY}
-      N8N_HOST: ${N8N_FQDN:-localhost}
-      N8N_PROTOCOL: https
-      WEBHOOK_URL: https://${N8N_FQDN:-localhost}/
-      N8N_RUNNERS_ENABLED: "true"
-      SERVICE_FQDN_N8N: ${N8N_FQDN:-}
-    volumes:
-      - n8ndata:/home/node/.n8n
     networks: [rozliczenia]
 
   # -------------------------------------------------------------------------
@@ -165,7 +136,6 @@ services:
 volumes:
   pgdata:
   archive:
-  n8ndata:
   backups:
 
 networks:

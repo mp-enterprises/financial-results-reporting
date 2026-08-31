@@ -28,8 +28,12 @@ SHEET_KARTA = "Karta"
 SHEET_KARTA_MJ = "Karta_MJ"
 SHEET_RAPORT = "Raport"
 SHEET_STOK = "Stok"
-REQUIRED_SHEETS = {SHEET_KARTA, SHEET_RAPORT, SHEET_STOK}
-KNOWN_SHEETS = {SHEET_HOWTO, SHEET_KARTA, SHEET_KARTA_MJ, SHEET_RAPORT, SHEET_STOK}
+# Wymagane są tylko dwa arkusze — one niosą rozliczenie i rozbicie na SKU.
+# Karta_MJ i Stok są opcjonalne: kanał MJ pojawia się nie w każdym okresie,
+# a arkusz Stok nadawca dodał dopiero od 2026 M07 (starsze pliki go nie mają).
+REQUIRED_SHEETS = {SHEET_KARTA, SHEET_RAPORT}
+OPTIONAL_SHEETS = {SHEET_HOWTO, SHEET_KARTA_MJ, SHEET_STOK}
+KNOWN_SHEETS = REQUIRED_SHEETS | OPTIONAL_SHEETS
 
 
 class ParseError(ValueError):
@@ -160,6 +164,13 @@ class ParsedFile:
     notes: list[tuple[str, str | None, Decimal | None]]
     sheet_payloads: dict[str, list[list[Any]]] = field(default_factory=dict)
     unknown_sheets: list[str] = field(default_factory=list)
+    # Nieblokujące spostrzeżenia, np. brak opcjonalnego arkusza. Trafiają do
+    # wyniku ingestu, żeby operator wiedział, czego w pliku nie było.
+    warnings: list[str] = field(default_factory=list)
+
+    @property
+    def has_stock(self) -> bool:
+        return bool(self.stock_lines)
 
 
 # --- parsowanie okresu i partnera -------------------------------------------
@@ -432,7 +443,19 @@ def parse_workbook(path: str | Path, file_name: str | None = None) -> ParsedFile
             settlements["MJ"] = parse_karta_mj(mj_rows)
 
     sales_lines, raport_totals = parse_raport(sheets[SHEET_RAPORT])
-    stock_lines = parse_stok(sheets[SHEET_STOK])
+
+    warnings: list[str] = []
+    if SHEET_STOK in sheets:
+        stock_lines = parse_stok(sheets[SHEET_STOK])
+    else:
+        stock_lines = []
+        warnings.append(
+            "Plik nie zawiera arkusza 'Stok' — dane magazynowe za ten okres nie "
+            "zostaną wczytane. Starsze rozliczenia (przed 2026 M07) go nie mają."
+        )
+    if "MJ" not in settlements:
+        warnings.append("Plik nie zawiera rozliczenia kanału MJ / Amazon.")
+
     notes, generated_at = parse_notes(sheets.get(SHEET_HOWTO, []))
 
     return ParsedFile(
@@ -450,6 +473,7 @@ def parse_workbook(path: str | Path, file_name: str | None = None) -> ParsedFile
             for name, rows in sheets.items()
         },
         unknown_sheets=sorted(set(sheets) - KNOWN_SHEETS),
+        warnings=warnings,
     )
 
 

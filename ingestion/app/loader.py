@@ -189,20 +189,26 @@ def load_parsed_file(conn, file_id: int, parsed: ParsedFile) -> dict:
             stats["rows_sales"] = len(parsed.sales_lines)
 
         # --- magazyn (wspólny dla wszystkich kanałów) ---
-        cur.execute(
-            "DELETE FROM core.stock_snapshot WHERE partner_id = %s AND period_id = %s",
-            (partner_id, period_id),
-        )
-        with cur.copy(
-            """COPY core.stock_snapshot (partner_id, period_id, product_id, file_id, qty_on_hand,
-               purchase_value, sales_month, sales_3m, sales_total, avg_daily, days_cover,
-               days_cover_capped, stock_status) FROM STDIN"""
-        ) as cp:
-            for l in parsed.stock_lines:
-                cp.write_row((partner_id, period_id, product_map[l.index_code], file_id,
-                              l.qty_on_hand, l.purchase_value, l.sales_month, l.sales_3m,
-                              l.sales_total, l.avg_daily, l.days_cover,
-                              l.days_cover_capped, l.stock_status))
+        # Arkusz Stok jest opcjonalny. Gdy go nie ma, NIE czyścimy istniejącego
+        # zdjęcia magazynu dla tego okresu — brak arkusza znaczy "nie wiem",
+        # a nie "magazyn jest pusty".
+        if parsed.stock_lines:
+            cur.execute(
+                "DELETE FROM core.stock_snapshot WHERE partner_id = %s AND period_id = %s",
+                (partner_id, period_id),
+            )
+            with cur.copy(
+                """COPY core.stock_snapshot (partner_id, period_id, product_id, file_id, qty_on_hand,
+                   purchase_value, sales_month, sales_3m, sales_total, avg_daily, days_cover,
+                   days_cover_capped, stock_status) FROM STDIN"""
+            ) as cp:
+                for l in parsed.stock_lines:
+                    cp.write_row((partner_id, period_id, product_map[l.index_code], file_id,
+                                  l.qty_on_hand, l.purchase_value, l.sales_month, l.sales_3m,
+                                  l.sales_total, l.avg_daily, l.days_cover,
+                                  l.days_cover_capped, l.stock_status))
+        else:
+            log.info("Plik %s nie zawiera arkusza Stok — pomijam dane magazynowe", file_id)
         stats["rows_stock"] = len(parsed.stock_lines)
 
         cur.execute(

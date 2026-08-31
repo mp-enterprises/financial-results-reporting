@@ -49,9 +49,11 @@ jobs:
       - name: Migracje bazy
         run: python -c "import sys; sys.path.insert(0,'ingestion'); from app.db import run_migrations; print(run_migrations('db/migrations'))"
 
-      - name: Załadowanie pliku przykładowego
+      - name: Załadowanie plików przykładowych (różne struktury arkuszy)
         run: |
           cd ingestion
+          # 2026-06 nie ma arkusza Stok, 2026-07 ma — oba muszą przejść
+          python -m app.cli ingest ../sample/Rozliczenie_2026M06_ZZMP1.xlsx --no-dbt
           python -m app.cli ingest ../sample/Rozliczenie_2026M07_ZZMP1.xlsx --no-dbt
 
       - name: Ponowne załadowanie musi zostać pominięte (idempotencja)

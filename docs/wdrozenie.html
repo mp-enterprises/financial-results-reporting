@@ -393,11 +393,10 @@ td code { white-space: nowrap; }
 }
 .closing h2 { font-size: 20px; margin-top: 0; }
 </style>
-
 <div class="wrap">
 
   <header class="hero">
-    <p class="eyebrow">Runbook wdrożeniowy · Coolify + n8n + dbt + Metabase</p>
+    <p class="eyebrow">Runbook wdrożeniowy · Coolify + Cloudflare + n8n Cloud + dbt + Metabase</p>
     <h1>System rozliczeń partnerskich</h1>
     <p class="lede">
       Kompletna instrukcja uruchomienia: od pustego serwera Coolify do działających
@@ -408,7 +407,8 @@ td code { white-space: nowrap; }
       <span><b>Czas wdrożenia:</b> 60–90 min</span>
       <span><b>Partner:</b> ZZMP1</span>
       <span><b>Baza:</b> PostgreSQL 16</span>
-      <span><b>Stan kodu:</b> zweryfikowany na danych z 2026-07</span>
+      <span><b>n8n:</b> Cloud</span>
+      <span><b>DNS:</b> Cloudflare</span>
     </div>
   </header>
 
@@ -419,13 +419,14 @@ td code { white-space: nowrap; }
       <li><a href="#k1"><span class="n">01</span><span>Repozytorium</span></a></li>
       <li><a href="#k2"><span class="n">02</span><span>Sekrety</span></a></li>
       <li><a href="#k3"><span class="n">03</span><span>Zasób w Coolify</span></a></li>
-      <li><a href="#k4"><span class="n">04</span><span>Pierwszy start</span></a></li>
-      <li><a href="#k5"><span class="n">05</span><span>Rola dla Metabase</span></a></li>
-      <li><a href="#k6"><span class="n">06</span><span>Dashboardy</span></a></li>
-      <li><a href="#k7"><span class="n">07</span><span>Workflow n8n</span></a></li>
-      <li><a href="#k8"><span class="n">08</span><span>Test i historia</span></a></li>
-      <li><a href="#k9"><span class="n">09</span><span>Utrzymanie</span></a></li>
-      <li><a href="#k10"><span class="n">10</span><span>Gdy coś nie działa</span></a></li>
+      <li><a href="#k4"><span class="n">04</span><span>Domeny i DNS</span></a></li>
+      <li><a href="#k5"><span class="n">05</span><span>Pierwszy start</span></a></li>
+      <li><a href="#k6"><span class="n">06</span><span>Rola dla Metabase</span></a></li>
+      <li><a href="#k7"><span class="n">07</span><span>Dashboardy</span></a></li>
+      <li><a href="#k8"><span class="n">08</span><span>n8n Cloud</span></a></li>
+      <li><a href="#k9"><span class="n">09</span><span>Test i historia</span></a></li>
+      <li><a href="#k10"><span class="n">10</span><span>Utrzymanie</span></a></li>
+      <li><a href="#k11"><span class="n">11</span><span>Gdy coś nie działa</span></a></li>
     </ol>
   </nav>
 
@@ -446,57 +447,67 @@ td code { white-space: nowrap; }
         </p>
 
         <div class="diagram">
-          <svg viewBox="0 0 760 220" role="img" aria-label="Przepływ danych: mail trafia do n8n, n8n przekazuje plik do workera, worker zapisuje do Postgresa w trzech warstwach, Metabase czyta warstwę mart">
+          <svg viewBox="0 0 780 250" role="img" aria-label="Przepływ danych: mail trafia do n8n Cloud, n8n przez publiczny HTTPS przekazuje plik do workera na serwerze Coolify, worker zapisuje do Postgresa w trzech warstwach, Metabase czyta warstwę mart">
             <defs>
               <marker id="strz" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
                 <path d="M0,0 L9,4.5 L0,9 z" fill="currentColor"/>
               </marker>
             </defs>
+
+            <rect x="330" y="8" width="440" height="234" rx="8" fill="none"
+                  stroke="var(--line)" stroke-dasharray="4 4"/>
+            <text x="758" y="26" text-anchor="end" fill="var(--muted)"
+                  font-family="IBM Plex Mono, monospace" font-size="10">serwer Coolify</text>
+
             <g fill="none" stroke="currentColor" color="var(--muted)" stroke-width="1.5" marker-end="url(#strz)">
-              <path d="M116 46 H186"/>
-              <path d="M290 46 H360"/>
-              <path d="M436 66 V104"/>
-              <path d="M436 178 H520"/>
-              <path d="M188 92 H186 Q166 92 166 72 V56"/>
+              <path d="M116 56 H186"/>
+              <path d="M292 48 H386"/>
+              <path d="M470 92 V130"/>
+              <path d="M470 204 H556"/>
+              <path d="M188 116 H186 Q166 116 166 84 V66"/>
             </g>
+            <path d="M386 68 H292" fill="none" stroke="currentColor" color="var(--muted)"
+                  stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#strz)"/>
 
             <g font-family="IBM Plex Mono, monospace" font-size="11">
               <g>
-                <rect x="16" y="26" width="100" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
-                <text x="66" y="43" text-anchor="middle" fill="var(--ink)" font-size="11.5">Mail</text>
-                <text x="66" y="57" text-anchor="middle" fill="var(--muted)" font-size="10">.xlsx</text>
+                <rect x="16" y="36" width="100" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="66" y="53" text-anchor="middle" fill="var(--ink)" font-size="11.5">Mail</text>
+                <text x="66" y="67" text-anchor="middle" fill="var(--muted)" font-size="10">.xlsx</text>
               </g>
               <g>
-                <rect x="188" y="26" width="102" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
-                <text x="239" y="43" text-anchor="middle" fill="var(--ink)" font-size="11.5">n8n</text>
-                <text x="239" y="57" text-anchor="middle" fill="var(--muted)" font-size="10">IMAP</text>
+                <rect x="188" y="30" width="104" height="52" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="240" y="49" text-anchor="middle" fill="var(--ink)" font-size="11.5">n8n Cloud</text>
+                <text x="240" y="65" text-anchor="middle" fill="var(--muted)" font-size="9.5">IMAP + HTTPS</text>
+              </g>
+              <text x="339" y="43" text-anchor="middle" fill="var(--muted)" font-size="9">POST</text>
+              <text x="339" y="84" text-anchor="middle" fill="var(--muted)" font-size="9">status</text>
+              <g>
+                <rect x="70" y="100" width="118" height="32" rx="5" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>
+                <text x="129" y="120" text-anchor="middle" fill="var(--muted)" font-size="10">upload ręczny / CLI</text>
               </g>
               <g>
-                <rect x="70" y="76" width="118" height="32" rx="5" fill="none" stroke="var(--line)" stroke-dasharray="3 3"/>
-                <text x="129" y="96" text-anchor="middle" fill="var(--muted)" font-size="10">upload ręczny / CLI</text>
+                <rect x="388" y="42" width="164" height="52" rx="5" fill="var(--accent-wash)" stroke="var(--accent)"/>
+                <text x="470" y="61" text-anchor="middle" fill="var(--ink)" font-size="11.5">worker ingest</text>
+                <text x="470" y="77" text-anchor="middle" fill="var(--muted)" font-size="9.5">SHA-256 · parser · dbt</text>
               </g>
               <g>
-                <rect x="362" y="20" width="148" height="52" rx="5" fill="var(--accent-wash)" stroke="var(--accent)"/>
-                <text x="436" y="39" text-anchor="middle" fill="var(--ink)" font-size="11.5">worker ingest</text>
-                <text x="436" y="55" text-anchor="middle" fill="var(--muted)" font-size="9.5">SHA-256 · parser · dbt</text>
+                <rect x="370" y="130" width="200" height="74" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="470" y="148" text-anchor="middle" fill="var(--ink)" font-size="11.5">PostgreSQL</text>
+                <text x="470" y="166" text-anchor="middle" fill="var(--muted)" font-size="9.5">raw — niezmienny zrzut</text>
+                <text x="470" y="180" text-anchor="middle" fill="var(--muted)" font-size="9.5">core — model relacyjny</text>
+                <text x="470" y="194" text-anchor="middle" fill="var(--muted)" font-size="9.5">mart — tabele analityczne</text>
               </g>
               <g>
-                <rect x="336" y="104" width="200" height="74" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
-                <text x="436" y="122" text-anchor="middle" fill="var(--ink)" font-size="11.5">PostgreSQL</text>
-                <text x="436" y="140" text-anchor="middle" fill="var(--muted)" font-size="9.5">raw — niezmienny zrzut</text>
-                <text x="436" y="154" text-anchor="middle" fill="var(--muted)" font-size="9.5">core — model relacyjny</text>
-                <text x="436" y="168" text-anchor="middle" fill="var(--muted)" font-size="9.5">mart — tabele analityczne</text>
-              </g>
-              <g>
-                <rect x="524" y="158" width="112" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
-                <text x="580" y="175" text-anchor="middle" fill="var(--ink)" font-size="11.5">Metabase</text>
-                <text x="580" y="189" text-anchor="middle" fill="var(--muted)" font-size="10">tylko odczyt</text>
+                <rect x="560" y="184" width="112" height="40" rx="5" fill="var(--surface-2)" stroke="var(--line)"/>
+                <text x="616" y="201" text-anchor="middle" fill="var(--ink)" font-size="11.5">Metabase</text>
+                <text x="616" y="215" text-anchor="middle" fill="var(--muted)" font-size="10">tylko odczyt</text>
               </g>
             </g>
           </svg>
         </div>
 
-        <h3>Cztery decyzje projektowe, które warto znać</h3>
+        <h3>Pięć decyzji projektowych, które warto znać</h3>
         <div class="cards">
           <div class="card">
             <h4>Trzy warstwy w bazie</h4>
@@ -514,16 +525,25 @@ td code { white-space: nowrap; }
             <h4>Kwoty są sprawdzane</h4>
             <p>Sześć równań rozliczenia przeliczanych niezależnie po każdym załadowaniu. Różnica powyżej grosza to alert.</p>
           </div>
+          <div class="card">
+            <h4>Przetwarzanie w tle</h4>
+            <p>Worker odpowiada n8n natychmiast i pracuje dalej. Limit 100 s na proxy Cloudflare przestaje mieć znaczenie.</p>
+          </div>
+          <div class="card">
+            <h4>Arkusze opcjonalne</h4>
+            <p>Wymagane są tylko Karta i Raport. Brak arkusza Stok lub Karta_MJ daje ostrzeżenie, nie błąd — starsze rozliczenia nie mają magazynu.</p>
+          </div>
         </div>
 
         <div class="note ok">
           <span class="note-label">Stan weryfikacji</span>
           <p>
             Cały łańcuch — schemat, ładowanie, wszystkie modele i 29 zapytań dashboardowych —
-            został uruchomiony na PostgreSQL 16 na Twoim pliku za 2026-07. Kwoty w bazie
-            zgadzają się z plikiem co do grosza: 60 041,44 zł do zapłaty w kanale głównym,
-            29 083,15 zł zarobku, 1 485,61 zł w kanale MJ, 269 484,89 zł wartości magazynu.
-            13 z 13 testów parsera zdanych.
+            został uruchomiony na PostgreSQL 16 na dwóch prawdziwych rozliczeniach:
+            <strong>2026-06 i 2026-07</strong>. Kwoty w bazie zgadzają się z plikami co do
+            grosza (63 869,88 i 60 041,44 zł do zapłaty w kanale głównym; 1 479,22 i 1 485,61 zł
+            w kanale MJ), wszystkie 12 kontroli arytmetyki przeszło, a trendy miesiąc do
+            miesiąca liczą się poprawnie. 16 z 16 testów parsera zdanych.
           </p>
         </div>
       </div>
@@ -539,28 +559,31 @@ td code { white-space: nowrap; }
         <p>
           Rozpakuj dostarczone archiwum i wypchnij je do prywatnego repozytorium.
           Coolify będzie z niego budował obraz workera przy każdym wdrożeniu.
+          Archiwum rozpakowuje się do katalogu <code>settlements</code> — możesz go
+          swobodnie przemianować.
         </p>
         <div class="code">
           <div class="code-label">terminal · lokalnie</div>
-          <pre><code>unzip rozliczenia-system.zip &amp;&amp; cd rozliczenia
+          <pre><code>unzip rozliczenia-system.zip
+mv settlements rozliczenia &amp;&amp; cd rozliczenia
 
 git init
 git add .
+git status                 <span class="cm"># sprawdź listę PRZED commitem</span>
 git commit -m "System rozliczeń partnerskich"
 
-<span class="cm"># utwórz PRYWATNE repozytorium na GitHub, potem:</span>
-git remote add origin git@github.com:TWOJA-NAZWA/rozliczenia.git
+git remote add origin git@github.com:ORGANIZACJA/nazwa-repo.git
 git branch -M main
 git push -u origin main</code></pre>
         </div>
         <div class="note warn">
           <span class="note-label">Zanim wypchniesz</span>
           <p>
-            Upewnij się, że plik <code>.env</code> nie trafia do repozytorium — jest już
-            w <code>.gitignore</code>, ale sprawdź to poleceniem <code>git status</code>.
-            Plik <code>sample/</code> zawiera prawdziwe dane finansowe, więc repozytorium
-            musi być prywatne. Jeśli wolisz, usuń ten katalog przed pierwszym commitem
-            (testy pominą się same, gdy pliku nie ma).
+            Na liście <code>git status</code> nie może być pliku <code>.env</code> —
+            jest w <code>.gitignore</code>, ale sprawdź. Katalog <code>sample/</code>
+            zawiera prawdziwe dane finansowe, więc repozytorium musi być prywatne.
+            Jeśli wolisz go nie trzymać w git, usuń go teraz:
+            <code>git rm -r --cached sample/</code> — testy pominą się same, gdy pliku nie ma.
           </p>
         </div>
       </div>
@@ -573,13 +596,12 @@ git push -u origin main</code></pre>
         <h2>Wygeneruj sekrety</h2>
       </div>
       <div class="step-body">
-        <p>Trzy hasła i dwa klucze. Wygeneruj je teraz i zapisz w menedżerze haseł — będą potrzebne w kroku 03.</p>
+        <p>Trzy hasła i jeden klucz API. Wygeneruj je teraz i zapisz w menedżerze haseł.</p>
         <div class="code">
           <div class="code-label">terminal · generowanie sekretów</div>
           <pre><code>echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
 echo "INGEST_API_KEY=$(openssl rand -hex 32)"
 echo "ADMIN_PASSWORD=$(openssl rand -hex 16)"
-echo "N8N_ENCRYPTION_KEY=$(openssl rand -hex 32)"
 echo "METABASE_RO_PASSWORD=$(openssl rand -hex 16)"</code></pre>
         </div>
         <div class="table-scroll">
@@ -588,20 +610,19 @@ echo "METABASE_RO_PASSWORD=$(openssl rand -hex 16)"</code></pre>
               <tr><th>Zmienna</th><th>Do czego służy</th><th>Konsekwencja utraty</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>POSTGRES_PASSWORD</code></td><td>dostęp do bazy dla workera, Metabase i n8n</td><td>utrata dostępu do wszystkich danych</td></tr>
-              <tr><td><code>INGEST_API_KEY</code></td><td>uwierzytelnia n8n w API workera</td><td>workflow przestaje ładować pliki</td></tr>
+              <tr><td><code>POSTGRES_PASSWORD</code></td><td>dostęp do bazy dla workera i Metabase</td><td>utrata dostępu do wszystkich danych</td></tr>
+              <tr><td><code>INGEST_API_KEY</code></td><td>uwierzytelnia n8n Cloud w API workera</td><td>workflow przestaje ładować pliki</td></tr>
               <tr><td><code>ADMIN_PASSWORD</code></td><td>formularz ręcznego uploadu i podgląd stanu</td><td>brak dostępu do panelu ręcznego</td></tr>
-              <tr><td><code>N8N_ENCRYPTION_KEY</code></td><td>szyfruje zapisane hasła do skrzynki i SMTP</td><td><strong>n8n traci wszystkie credentials bezpowrotnie</strong></td></tr>
               <tr><td><code>METABASE_RO_PASSWORD</code></td><td>konto tylko-do-odczytu dla dashboardów</td><td>trzeba przepiąć połączenie w Metabase</td></tr>
             </tbody>
           </table>
         </div>
-        <div class="note warn">
-          <span class="note-label">Klucz szyfrujący n8n</span>
+        <div class="note">
+          <span class="note-label">Bez klucza n8n</span>
           <p>
-            <code>N8N_ENCRYPTION_KEY</code> ustaw raz i nigdy nie zmieniaj. Zmiana sprawia,
-            że n8n nie odszyfruje zapisanych haseł do skrzynki pocztowej i będzie trzeba
-            skonfigurować je od nowa.
+            Ponieważ używamy n8n Cloud, nie ma tu zmiennej <code>N8N_ENCRYPTION_KEY</code> —
+            szyfrowaniem poświadczeń zarządza n8n po swojej stronie. To jeden sekret mniej
+            do pilnowania.
           </p>
         </div>
       </div>
@@ -617,20 +638,19 @@ echo "METABASE_RO_PASSWORD=$(openssl rand -hex 16)"</code></pre>
         <ol class="body-list">
           <li>W panelu Coolify wybierz projekt (lub utwórz nowy) i kliknij <strong>+ New Resource</strong>.</li>
           <li>Wybierz <strong>Docker Compose</strong> jako typ zasobu.</li>
-          <li>Wskaż źródło: <strong>Private Repository (with GitHub App)</strong> i wybierz repozytorium z kroku 01.</li>
+          <li>Źródło: <strong>Private Repository (with GitHub App)</strong>, wskaż repozytorium z kroku 01.</li>
           <li>Branch: <code>main</code>. Ścieżka do pliku Compose: <code>/docker-compose.yml</code>.</li>
-          <li>Zapisz — <strong>jeszcze nie wdrażaj</strong>.</li>
+          <li>Zapisz — <strong>jeszcze nie wdrażaj</strong>. Domeny ustawimy w kroku 04.</li>
         </ol>
 
         <h3>Zmienne środowiskowe</h3>
-        <p>Przejdź do zakładki <strong>Environment Variables</strong> i wklej poniższe, podstawiając sekrety z kroku 02 i własne domeny.</p>
+        <p>Zakładka <strong>Environment Variables</strong>, wklej i podstaw sekrety z kroku 02:</p>
         <div class="code">
           <div class="code-label">Coolify · Environment Variables</div>
           <pre><code>POSTGRES_DB=settlements
 POSTGRES_USER=settlements
 POSTGRES_PASSWORD=&lt;z kroku 02&gt;
 METABASE_DB=metabase
-N8N_DB=n8n
 
 INGEST_API_KEY=&lt;z kroku 02&gt;
 ADMIN_USER=admin
@@ -638,40 +658,15 @@ ADMIN_PASSWORD=&lt;z kroku 02&gt;
 RECON_TOLERANCE=0.01
 MAX_UPLOAD_MB=50
 
-N8N_ENCRYPTION_KEY=&lt;z kroku 02&gt;
-
-INGEST_FQDN=rozliczenia.twojadomena.pl
-METABASE_FQDN=bi.twojadomena.pl
-N8N_FQDN=n8n.twojadomena.pl
-
 BACKUP_RETENTION_DAYS=30</code></pre>
         </div>
-
-        <h3>Domeny</h3>
-        <p>
-          W zakładce <strong>Domains</strong> przypisz adresy do trzech usług. Coolify sam
-          wystawi certyfikaty Let's Encrypt. Usługi <code>postgres</code> i <code>backup</code>
-          zostaw bez domeny — mają być dostępne wyłącznie wewnątrz sieci Dockera.
-        </p>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Usługa</th><th>Domena</th><th>Dostęp</th></tr></thead>
-            <tbody>
-              <tr><td><code>metabase</code></td><td>bi.twojadomena.pl</td><td>logowanie Metabase</td></tr>
-              <tr><td><code>ingest</code></td><td>rozliczenia.twojadomena.pl</td><td>Basic Auth + klucz API</td></tr>
-              <tr><td><code>n8n</code></td><td>n8n.twojadomena.pl</td><td>logowanie n8n</td></tr>
-              <tr><td><code>postgres</code></td><td>—</td><td>tylko sieć wewnętrzna</td></tr>
-              <tr><td><code>backup</code></td><td>—</td><td>tylko sieć wewnętrzna</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="note tip">
-          <span class="note-label">Masz już n8n na Coolify</span>
+        <div class="note">
+          <span class="note-label">Domen tu nie ma celowo</span>
           <p>
-            Usuń usługę <code>n8n</code> z <code>docker-compose.yml</code> i zamiast tego
-            podłącz istniejącą instancję do sieci tego stacku (Coolify: <em>Connect to
-            Predefined Network</em>). Adres workera w workflow pozostaje bez zmian:
-            <code>http://ingest:8000/ingest</code>.
+            Magiczne zmienne <code>SERVICE_FQDN_*</code> bywają w Coolify źródłem
+            trudnych do wyśledzenia rozjazdów — potrafią nie odświeżyć się po zmianie
+            domeny w UI. Dlatego domeny ustawiamy wyłącznie w polu <strong>Domains</strong>
+            przy usłudze, co jest jednoznaczne i widoczne w jednym miejscu.
           </p>
         </div>
       </div>
@@ -681,36 +676,180 @@ BACKUP_RETENTION_DAYS=30</code></pre>
     <section class="step" id="k4">
       <div class="step-head">
         <span class="badge">04</span>
-        <h2>Pierwsze uruchomienie i weryfikacja</h2>
+        <h2>Domeny: Cloudflare i Coolify</h2>
       </div>
       <div class="step-body">
         <p>
-          Kliknij <strong>Deploy</strong>. Pierwsze budowanie trwa 3–5 minut (instalacja
-          dbt i zależności Pythona). Migracje bazy wykonują się automatycznie przy starcie
-          workera — nie trzeba ich uruchamiać ręcznie.
+          Kolejność ma tu znaczenie krytyczne. Najpierw kierujemy DNS
+          <strong>bez proxy</strong>, żeby Coolify mógł wystawić certyfikat Let's Encrypt,
+          a dopiero potem — jeśli chcesz — włączamy proxy Cloudflare. Odwrotna kolejność
+          to najczęstsza przyczyna wielogodzinnej walki z SSL.
         </p>
+
+        <h3>4.1 Ustal adres IP serwera</h3>
+        <p>W Coolify: <strong>Servers → Twój serwer</strong>, pole <em>IP Address</em>. Albo z terminala serwera:</p>
         <div class="code">
-          <div class="code-label">terminal · weryfikacja</div>
-          <pre><code><span class="cm"># 1. Worker odpowiada i widzi bazę</span>
-curl -s https://rozliczenia.twojadomena.pl/healthz
-<span class="cm"># oczekiwane: {"status":"ok"}</span>
+          <div class="code-label">terminal · na serwerze</div>
+          <pre><code>curl -4 ifconfig.me</code></pre>
+        </div>
 
-<span class="cm"># 2. Schemat został utworzony (w terminalu Coolify, usługa postgres)</span>
-psql -U settlements -d settlements -c "\dt core.*"
-<span class="cm"># oczekiwane: partner, period, channel, settlement, product,</span>
-<span class="cm">#            sales_line, stock_snapshot, settlement_note</span>
-
-<span class="cm"># 3. Panel ręcznego uploadu działa</span>
-<span class="cm"># otwórz https://rozliczenia.twojadomena.pl/ i zaloguj się (admin + ADMIN_PASSWORD)</span></code></pre>
+        <h3>4.2 Cloudflare — dodaj rekordy DNS</h3>
+        <p>
+          Panel Cloudflare → wybierz domenę → <strong>DNS → Records → Add record</strong>.
+          Dodaj dwa rekordy typu A:
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Type</th><th>Name</th><th>IPv4 address</th><th>Proxy status</th><th>TTL</th></tr></thead>
+            <tbody>
+              <tr><td>A</td><td><code>bi</code></td><td>IP serwera</td><td><span class="pill warn">DNS only</span> szara chmurka</td><td>Auto</td></tr>
+              <tr><td>A</td><td><code>rozliczenia</code></td><td>IP serwera</td><td><span class="pill warn">DNS only</span> szara chmurka</td><td>Auto</td></tr>
+            </tbody>
+          </table>
         </div>
         <div class="note warn">
-          <span class="note-label">Jeśli healthz zwraca 503</span>
+          <span class="note-label">Proxy na tym etapie musi być wyłączone</span>
           <p>
-            Worker wystartował szybciej niż baza. Sprawdź logi usługi <code>postgres</code>
-            i odczekaj minutę — Docker restartuje kontener automatycznie. Jeśli błąd trwa,
-            zwykle oznacza literówkę w <code>POSTGRES_PASSWORD</code> między usługami.
+            Kliknij pomarańczową chmurkę, aż zrobi się szara („DNS only”). Coolify
+            weryfikuje domenę metodą HTTP-01 — Let's Encrypt musi trafić bezpośrednio
+            na Twój serwer. Z włączonym proxy walidacja potrafi się nie powieść
+            i zostajesz bez certyfikatu.
+          </p>
+          <p>
+            Nie ruszaj rekordu głównego <code>@</code> ani <code>www</code>, jeśli stoi
+            tam Twoja strona — dodajemy wyłącznie dwie nowe subdomeny.
           </p>
         </div>
+
+        <h3>4.3 Sprawdź, gdzie faktycznie wskazuje DNS</h3>
+        <div class="code">
+          <div class="code-label">terminal · lokalnie</div>
+          <pre><code>dig +short bi.twojadomena.pl
+dig +short rozliczenia.twojadomena.pl</code></pre>
+        </div>
+        <p>
+          Oba muszą zwrócić <strong>IP Twojego serwera</strong>. Jeśli widzisz adresy
+          zaczynające się od <code>104.</code> lub <code>172.67.</code>, to adresy
+          Cloudflare — proxy nadal jest włączone, wróć do punktu 4.2. Propagacja
+          zwykle trwa poniżej minuty.
+        </p>
+
+        <h3>4.4 Cloudflare — tryb SSL/TLS</h3>
+        <p><strong>SSL/TLS → Overview → Configure</strong> i ustaw <strong>Full (strict)</strong>.</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Tryb</th><th>Co robi</th><th>Werdykt</th></tr></thead>
+            <tbody>
+              <tr><td>Flexible</td><td>Cloudflare łączy się z serwerem po HTTP</td><td><span class="pill bad">nigdy</span> pętla przekierowań</td></tr>
+              <tr><td>Full</td><td>HTTPS do serwera, bez sprawdzania certyfikatu</td><td><span class="pill warn">działa, ale słabiej</span></td></tr>
+              <tr><td>Full (strict)</td><td>HTTPS do serwera z weryfikacją certyfikatu</td><td><span class="pill ok">to ustaw</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Dlaczego nie Flexible</span>
+          <p>
+            Coolify przekierowuje HTTP na HTTPS. W trybie Flexible Cloudflare wysyła
+            do serwera żądanie HTTP, serwer odsyła przekierowanie na HTTPS, Cloudflare
+            znów pyta po HTTP — i tak w kółko. Przeglądarka pokazuje
+            <code>ERR_TOO_MANY_REDIRECTS</code>. To najczęstszy błąd w tej konfiguracji.
+          </p>
+        </div>
+        <p>Następnie <strong>SSL/TLS → Edge Certificates</strong>:</p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Ustawienie</th><th>Wartość</th></tr></thead>
+            <tbody>
+              <tr><td>Always Use HTTPS</td><td>ON</td></tr>
+              <tr><td>Automatic HTTPS Rewrites</td><td>ON</td></tr>
+              <tr><td>Minimum TLS Version</td><td>TLS 1.2</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>4.5 Otwórz porty na serwerze</h3>
+        <p>Let's Encrypt potrzebuje portu 80, ruch użytkowników portu 443:</p>
+        <div class="code">
+          <div class="code-label">terminal · na serwerze</div>
+          <pre><code>sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw status</code></pre>
+        </div>
+        <p>Jeśli serwer stoi u dostawcy z własnym firewallem (Hetzner, OVH, AWS), otwórz te porty również w jego panelu.</p>
+
+        <h3>4.6 Coolify — przypisz domeny do usług</h3>
+        <p>
+          Otwórz swój zasób → <strong>Configuration</strong>. Przy usłudze Docker Compose
+          Coolify pokazuje listę kontenerów, a każdy ma własne pole <strong>Domains</strong>.
+          Wpisz adres <em>razem z portem kontenera</em>:
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Usługa</th><th>Wartość w polu Domains</th><th>Dlaczego ten port</th></tr></thead>
+            <tbody>
+              <tr><td><code>metabase</code></td><td><code>https://bi.twojadomena.pl:3000</code></td><td>Metabase nasłuchuje na 3000</td></tr>
+              <tr><td><code>ingest</code></td><td><code>https://rozliczenia.twojadomena.pl:8000</code></td><td>uvicorn nasłuchuje na 8000</td></tr>
+              <tr><td><code>postgres</code></td><td>zostaw puste</td><td>baza nie może być publiczna</td></tr>
+              <tr><td><code>backup</code></td><td>zostaw puste</td><td>usługa wewnętrzna</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note tip">
+          <span class="note-label">Port po dwukropku nie jest opcjonalny</span>
+          <p>
+            Przy stacku z wieloma usługami Coolify nie zgadnie, na który port kontenera
+            kierować ruch. Bez <code>:3000</code> i <code>:8000</code> najczęściej dostaniesz
+            502 Bad Gateway albo trafisz na niewłaściwą usługę.
+          </p>
+        </div>
+        <p>Zapisz i kliknij <strong>Deploy</strong>. Pierwsze budowanie trwa 3–5 minut.</p>
+
+        <h3>4.7 Zweryfikuj certyfikat</h3>
+        <div class="code">
+          <div class="code-label">terminal · lokalnie</div>
+          <pre><code>curl -sI https://rozliczenia.twojadomena.pl/healthz | head -3
+
+<span class="cm"># kto wystawił certyfikat i do kiedy jest ważny</span>
+echo | openssl s_client -connect bi.twojadomena.pl:443 \
+      -servername bi.twojadomena.pl 2>/dev/null \
+  | openssl x509 -noout -issuer -dates</code></pre>
+        </div>
+        <p>
+          W polu <code>issuer</code> powinno być <strong>Let's Encrypt</strong>, a data
+          <code>notAfter</code> około 90 dni w przód. Coolify odnawia certyfikat sam.
+        </p>
+
+        <h3>4.8 Włącz proxy Cloudflare (zalecane, ale dopiero teraz)</h3>
+        <p>
+          Skoro certyfikat działa, możesz włączyć proxy: wróć do <strong>DNS → Records</strong>
+          i przełącz obie chmurki z szarej na <strong>pomarańczową</strong>. Tryb SSL/TLS
+          zostaw na <strong>Full (strict)</strong> — teraz na serwerze jest prawdziwy
+          certyfikat, więc Cloudflare go zaakceptuje.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Co zyskujesz</th><th>Co musisz wiedzieć</th></tr></thead>
+            <tbody>
+              <tr><td>Adres IP serwera przestaje być publiczny</td><td>Limit żądania: 100 s na planie darmowym</td></tr>
+              <tr><td>Ochrona przed DDoS i ruchem botów</td><td>Limit uploadu: 100 MB na planie darmowym</td></tr>
+              <tr><td>Cache i szybsze ładowanie Metabase</td><td>Odnowienie Let's Encrypt nadal działa przez proxy</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note ok">
+          <span class="note-label">Limity Cloudflare nas nie dotykają</span>
+          <p>
+            Limit 100 sekund byłby problemem, bo przetworzenie pliku razem z dbt potrafi
+            trwać dłużej. Dlatego worker ma tryb <code>mode=async</code>: odpowiada n8n
+            natychmiast kodem 202, a n8n dopytuje o wynik przez <code>GET /files/{sha}</code>.
+            Limit 100 MB też jest bez znaczenia — rozliczenie waży około 125 KB.
+          </p>
+        </div>
+        <p>
+          Po przełączeniu odczekaj minutę i sprawdź ponownie. Jeśli strona przestanie
+          działać, wróć na szarą chmurkę i zajrzyj do kroku 11 — tabela rozwiązywania
+          problemów ma osobną sekcję o Cloudflare.
+        </p>
       </div>
     </section>
 
@@ -718,13 +857,49 @@ psql -U settlements -d settlements -c "\dt core.*"
     <section class="step" id="k5">
       <div class="step-head">
         <span class="badge">05</span>
+        <h2>Pierwszy start i weryfikacja</h2>
+      </div>
+      <div class="step-body">
+        <p>
+          Migracje bazy wykonują się automatycznie przy starcie workera — nie trzeba
+          uruchamiać ich ręcznie.
+        </p>
+        <div class="code">
+          <div class="code-label">terminal · weryfikacja</div>
+          <pre><code><span class="cm"># 1. Worker odpowiada i widzi bazę</span>
+curl -s https://rozliczenia.twojadomena.pl/healthz
+<span class="cm"># oczekiwane: {"status":"ok"}</span>
+
+<span class="cm"># 2. Schemat został utworzony (terminal Coolify, usługa postgres)</span>
+psql -U settlements -d settlements -c "\dt core.*"
+<span class="cm"># oczekiwane: partner, period, channel, settlement, product,</span>
+<span class="cm">#            sales_line, stock_snapshot, settlement_note</span>
+
+<span class="cm"># 3. Panel ręcznego uploadu działa</span>
+<span class="cm"># otwórz https://rozliczenia.twojadomena.pl/ (admin + ADMIN_PASSWORD)</span></code></pre>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Jeśli healthz zwraca 503</span>
+          <p>
+            Worker wystartował szybciej niż baza. Sprawdź logi usługi <code>postgres</code>
+            i odczekaj minutę — Docker restartuje kontener sam. Jeśli błąd się utrzymuje,
+            zwykle oznacza literówkę w <code>POSTGRES_PASSWORD</code> między usługami.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 06 ============ -->
+    <section class="step" id="k6">
+      <div class="step-head">
+        <span class="badge">06</span>
         <h2>Ustaw hasło roli tylko-do-odczytu</h2>
       </div>
       <div class="step-body">
         <p>
-          Migracja tworzy rolę <code>metabase_ro</code> z hasłem zastępczym. Metabase będzie
-          łączyć się właśnie nią, żeby narzędzie raportowe nie miało prawa zapisu do danych
-          finansowych. Zmień hasło przed podłączeniem.
+          Migracja tworzy rolę <code>metabase_ro</code> z hasłem zastępczym. Metabase
+          łączy się właśnie nią, żeby narzędzie raportowe nie miało prawa zapisu do
+          danych finansowych. Zmień hasło przed podłączeniem.
         </p>
         <div class="code">
           <div class="code-label">terminal Coolify · usługa postgres</div>
@@ -741,14 +916,14 @@ INSERT INTO core.partner (partner_code) VALUES ('TEST');
       </div>
     </section>
 
-    <!-- ============ 06 ============ -->
-    <section class="step" id="k6">
+    <!-- ============ 07 ============ -->
+    <section class="step" id="k7">
       <div class="step-head">
-        <span class="badge">06</span>
+        <span class="badge">07</span>
         <h2>Podłącz Metabase i zbuduj dashboardy</h2>
       </div>
       <div class="step-body">
-        <p>Otwórz <code>https://bi.twojadomena.pl</code>, załóż konto administratora, a potem dodaj bazę danych:</p>
+        <p>Otwórz <code>https://bi.twojadomena.pl</code>, załóż konto administratora, dodaj bazę:</p>
         <div class="table-scroll">
           <table>
             <thead><tr><th>Pole</th><th>Wartość</th></tr></thead>
@@ -758,7 +933,7 @@ INSERT INTO core.partner (partner_code) VALUES ('TEST');
               <tr><td>Port</td><td><code>5432</code></td></tr>
               <tr><td>Database name</td><td><code>settlements</code></td></tr>
               <tr><td>Username</td><td><code>metabase_ro</code></td></tr>
-              <tr><td>Password</td><td>hasło z kroku 05</td></tr>
+              <tr><td>Password</td><td>hasło z kroku 06</td></tr>
               <tr><td>Schemas</td><td><code>mart,core,ops</code></td></tr>
             </tbody>
           </table>
@@ -798,14 +973,32 @@ INSERT INTO core.partner (partner_code) VALUES ('TEST');
       </div>
     </section>
 
-    <!-- ============ 07 ============ -->
-    <section class="step" id="k7">
+    <!-- ============ 08 ============ -->
+    <section class="step" id="k8">
       <div class="step-head">
-        <span class="badge">07</span>
-        <h2>Skonfiguruj workflow w n8n</h2>
+        <span class="badge">08</span>
+        <h2>Skonfiguruj n8n Cloud</h2>
       </div>
       <div class="step-body">
-        <p>Otwórz <code>https://n8n.twojadomena.pl</code> i załóż konto. Najpierw poświadczenia, potem import workflow.</p>
+        <p>
+          Zostajemy przy n8n Cloud — masz go opłaconego, a to o jedną usługę mniej
+          do utrzymania, aktualizowania i backupowania na serwerze. Jedyna różnica
+          wobec wersji self-hosted jest taka, że n8n stoi poza siecią Dockera, więc
+          nie może sięgnąć wprost do bazy. Rozwiązaliśmy to dwoma endpointami HTTPS:
+          workflow pyta worker zamiast pytać Postgresa.
+        </p>
+
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Aspekt</th><th>n8n Cloud <span class="pill ok">wybrane</span></th><th>n8n self-hosted</th></tr></thead>
+            <tbody>
+              <tr><td>Utrzymanie</td><td>zero — aktualizacje po stronie n8n</td><td>Twoje aktualizacje i backupy</td></tr>
+              <tr><td>Dostęp do bazy</td><td>przez HTTPS i klucz API</td><td>bezpośrednio w sieci Dockera</td></tr>
+              <tr><td>Ryzyko utraty poświadczeń</td><td>brak</td><td>utrata <code>N8N_ENCRYPTION_KEY</code> = konfiguracja od nowa</td></tr>
+              <tr><td>Zasoby serwera</td><td>nie zużywa</td><td>~500 MB RAM</td></tr>
+            </tbody>
+          </table>
+        </div>
 
         <h3>Poświadczenia (Credentials → Add credential)</h3>
         <div class="table-scroll">
@@ -815,28 +1008,57 @@ INSERT INTO core.partner (partner_code) VALUES ('TEST');
               <tr><td>Skrzynka rozliczeniowa</td><td>IMAP</td><td>host, port 993, SSL, login i hasło skrzynki odbierającej rozliczenia</td></tr>
               <tr><td>Klucz API ingest (X-API-Key)</td><td>Header Auth</td><td>Name: <code>X-API-Key</code>, Value: <code>INGEST_API_KEY</code></td></tr>
               <tr><td>Poczta wychodząca</td><td>SMTP</td><td>serwer wysyłkowy do powiadomień</td></tr>
-              <tr><td>Baza rozliczeń</td><td>Postgres</td><td>host <code>postgres</code>, baza <code>settlements</code>, użytkownik <code>metabase_ro</code></td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="note">
+          <span class="note-label">Bez poświadczenia do Postgresa</span>
+          <p>
+            W wersji dla n8n Cloud nie ma węzła bazodanowego, więc nie tworzysz
+            poświadczenia do Postgresa — i nie musisz wystawiać bazy na świat.
+            Zapytanie „czy rozliczenie już dotarło” obsługuje endpoint
+            <code>GET /status/okres</code>.
+          </p>
         </div>
 
         <h3>Zmienne (Settings → Variables)</h3>
         <div class="code">
-          <div class="code-label">n8n · Variables</div>
-          <pre><code>NADAWCA_ROZLICZEN   = j.nikolajuk75@gmail.com
-EMAIL_POWIADOMIEN   = twoj.adres@firma.pl
-METABASE_URL        = bi.twojadomena.pl</code></pre>
+          <div class="code-label">n8n Cloud · Variables</div>
+          <pre><code>INGEST_HOST         = rozliczenia.twojadomena.pl
+METABASE_HOST       = bi.twojadomena.pl
+NADAWCA_ROZLICZEN   = j.nikolajuk75@gmail.com
+EMAIL_POWIADOMIEN   = twoj.adres@firma.pl</code></pre>
         </div>
+        <p>Wpisuj same nazwy hostów, bez <code>https://</code> — workflow dokleja schemat sam.</p>
 
         <h3>Import workflow</h3>
         <ol class="body-list">
-          <li><strong>Workflows → Import from File</strong> i wskaż <code>n8n/workflow_rozliczenia.json</code>.</li>
+          <li><strong>Workflows → Import from File</strong>, wskaż <code>n8n/workflow_rozliczenia_cloud.json</code>.</li>
           <li>Otwórz każdy węzeł z ikoną ostrzeżenia i wybierz utworzone przed chwilą poświadczenie.</li>
-          <li>Sprawdź węzeł <em>Czy to rozliczenie?</em> — filtruje po nadawcy ze zmiennej <code>NADAWCA_ROZLICZEN</code>.</li>
-          <li>Aktywuj workflow przełącznikiem <strong>Active</strong> w prawym górnym rogu.</li>
+          <li>Sprawdź węzeł <em>Czy to rozliczenie?</em> — filtruje po zmiennej <code>NADAWCA_ROZLICZEN</code>.</li>
+          <li>Aktywuj workflow przełącznikiem <strong>Active</strong>.</li>
         </ol>
 
-        <p>Workflow ma trzy niezależne wejścia i trzy ścieżki wyjścia:</p>
+        <h3>Jak działa pętla oczekiwania</h3>
+        <p>
+          Węzeł <em>Prześlij plik</em> wysyła plik z parametrem <code>mode=async</code>
+          i dostaje natychmiast kod 202 ze skrótem SHA-256. Potem workflow czeka 20 sekund
+          i odpytuje <code>GET /files/{sha}</code>, aż pole <code>zakonczone</code> zrobi
+          się prawdziwe. Przy typowym pliku wystarcza jeden obieg.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Odpowiedź</th><th>Reakcja workflow</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pill ok">accepted</span></td><td>wchodzi w pętlę odpytywania</td></tr>
+              <tr><td><span class="pill ok">duplicate</span></td><td>kończy przebieg bez alertu — ten plik już był</td></tr>
+              <tr><td><span class="pill ok">udane: true</span></td><td>mail z podsumowaniem</td></tr>
+              <tr><td><span class="pill bad">udane: false</span></td><td>alert z treścią błędu i listą nieudanych kontroli kwot</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Trzy wyzwalacze</h3>
         <div class="table-scroll">
           <table>
             <thead><tr><th>Wyzwalacz</th><th>Kiedy działa</th></tr></thead>
@@ -847,42 +1069,42 @@ METABASE_URL        = bi.twojadomena.pl</code></pre>
             </tbody>
           </table>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Odpowiedź workera</th><th>Reakcja</th></tr></thead>
-            <tbody>
-              <tr><td><span class="pill ok">processed</span> bez błędów kontroli</td><td>mail z podsumowaniem i liczbą wczytanych pozycji</td></tr>
-              <tr><td><span class="pill warn">processed</span> z błędami kontroli</td><td>alert: dane są w bazie, ale kwoty w pliku się nie spinają</td></tr>
-              <tr><td><span class="pill ok">duplicate</span></td><td>nic — ten plik już był, to normalne przy ponownym wysłaniu maila</td></tr>
-              <tr><td><span class="pill bad">failed</span></td><td>alert z treścią błędu; plik zostaje w archiwum do analizy</td></tr>
-            </tbody>
-          </table>
-        </div>
       </div>
     </section>
 
-    <!-- ============ 08 ============ -->
-    <section class="step" id="k8">
+    <!-- ============ 09 ============ -->
+    <section class="step" id="k9">
       <div class="step-head">
-        <span class="badge">08</span>
+        <span class="badge">09</span>
         <h2>Test end-to-end i wczytanie historii</h2>
       </div>
       <div class="step-body">
         <p>Najważniejszy test: ten sam plik wgrany dwa razy musi zostać przetworzony tylko raz.</p>
         <div class="code">
           <div class="code-label">terminal · test idempotencji</div>
-          <pre><code><span class="cm"># pierwsze wgranie</span>
-curl -s -X POST https://rozliczenia.twojadomena.pl/ingest \
-     -H "X-API-Key: $INGEST_API_KEY" \
+          <pre><code>export KLUCZ="&lt;INGEST_API_KEY&gt;"
+export HOST="rozliczenia.twojadomena.pl"
+
+<span class="cm"># pierwsze wgranie (synchroniczne — czekamy na wynik)</span>
+curl -s -X POST https://$HOST/ingest \
+     -H "X-API-Key: $KLUCZ" \
      -F "file=@Rozliczenie_2026M07_ZZMP1.xlsx" \
      -F "source=manual"
 <span class="cm"># oczekiwane: "status": "processed", "checks_failed": 0</span>
 
 <span class="cm"># drugie wgranie tego samego pliku</span>
-curl -s -X POST https://rozliczenia.twojadomena.pl/ingest \
-     -H "X-API-Key: $INGEST_API_KEY" \
+curl -s -X POST https://$HOST/ingest \
+     -H "X-API-Key: $KLUCZ" \
      -F "file=@Rozliczenie_2026M07_ZZMP1.xlsx"
-<span class="cm"># oczekiwane: "status": "duplicate" — plik pominięty</span></code></pre>
+<span class="cm"># oczekiwane: "status": "duplicate" — plik pominięty</span>
+
+<span class="cm"># tryb async, tak jak używa go n8n</span>
+curl -s -X POST https://$HOST/ingest \
+     -H "X-API-Key: $KLUCZ" \
+     -F "file=@Rozliczenie_2026M08_ZZMP1.xlsx" \
+     -F "mode=async"
+<span class="cm"># oczekiwane: 202 + "file_sha256" — potem odpytaj:</span>
+curl -s https://$HOST/files/&lt;sha&gt; -H "X-API-Key: $KLUCZ"</code></pre>
         </div>
 
         <h3>Lista kontrolna wdrożenia</h3>
@@ -890,10 +1112,12 @@ curl -s -X POST https://rozliczenia.twojadomena.pl/ingest \
           <table>
             <thead><tr><th>Sprawdzenie</th><th>Oczekiwany wynik</th></tr></thead>
             <tbody>
+              <tr><td><code>dig +short</code> dla obu subdomen</td><td>IP serwera (albo IP Cloudflare, jeśli włączyłeś proxy w 4.8)</td></tr>
+              <tr><td>Certyfikat TLS</td><td>issuer <span class="pill ok">Let's Encrypt</span></td></tr>
               <tr><td><code>GET /healthz</code></td><td><span class="pill ok">{"status":"ok"}</span></td></tr>
               <tr><td>Pierwsze wgranie pliku</td><td><span class="pill ok">processed</span>, <code>checks_failed: 0</code></td></tr>
               <tr><td>Drugie wgranie tego samego pliku</td><td><span class="pill ok">duplicate</span></td></tr>
-              <tr><td>Transformacje dbt</td><td><code>"dbt_status": "success"</code></td></tr>
+              <tr><td>Tryb async</td><td>202, potem <code>zakonczone: true</code></td></tr>
               <tr><td>Kwota do zapłaty w dashboardzie</td><td>zgodna z arkuszem Karta co do grosza</td></tr>
               <tr><td>Suma magazynu z arkusza Stok</td><td>równa wartości z arkusza Karta</td></tr>
               <tr><td>Metabase próbuje zapisać do bazy</td><td><span class="pill bad">permission denied</span> — tak ma być</td></tr>
@@ -910,10 +1134,7 @@ curl -s -X POST https://rozliczenia.twojadomena.pl/ingest \
         </p>
         <div class="code">
           <div class="code-label">terminal Coolify · usługa ingest</div>
-          <pre><code><span class="cm"># skopiuj pliki do wolumenu archiwum, potem:</span>
-python -m app.cli backfill /data/archive/historia/
-
-<span class="cm"># podsumowanie stanu systemu</span>
+          <pre><code>python -m app.cli backfill /data/archive/historia/
 python -m app.cli status</code></pre>
         </div>
         <div class="note">
@@ -927,10 +1148,10 @@ python -m app.cli status</code></pre>
       </div>
     </section>
 
-    <!-- ============ 09 ============ -->
-    <section class="step" id="k9">
+    <!-- ============ 10 ============ -->
+    <section class="step" id="k10">
       <div class="step-head">
-        <span class="badge">09</span>
+        <span class="badge">10</span>
         <h2>Utrzymanie</h2>
       </div>
       <div class="step-body">
@@ -955,7 +1176,7 @@ gunzip -c kopia_20260831.sql.gz \
 
         <h3>Co miesiąc — po nadejściu rozliczenia</h3>
         <ol class="body-list">
-          <li>Sprawdź mail z powiadomieniem: status <code>processed</code> i zero nieudanych kontroli.</li>
+          <li>Sprawdź mail z powiadomieniem: status zakończony i zero nieudanych kontroli.</li>
           <li>Otwórz dashboard <strong>Proces</strong> — karta 4.6 pokazuje rozbieżność między arkuszami Raport i Karta. Rosnąca rozbieżność to sygnał do rozmowy z nadawcą.</li>
           <li>Przejrzyj dashboard <strong>Magazyn</strong>, kartę „Do dozamówienia” — kolumna z sugerowanym zamówieniem na 90 dni.</li>
         </ol>
@@ -965,7 +1186,7 @@ gunzip -c kopia_20260831.sql.gz \
           Wypchnij zmiany do gałęzi <code>main</code> — Coolify przebuduje worker przy
           włączonym auto-deploy. Migracje bazy stosują się automatycznie i tylko raz
           (rejestr w tabeli <code>ops.schema_migration</code>), więc restart kontenera
-          jest bezpieczny.
+          jest bezpieczny. Domeny i certyfikaty przeżywają redeploy bez zmian.
         </p>
 
         <div class="note tip">
@@ -981,13 +1202,54 @@ gunzip -c kopia_20260831.sql.gz \
       </div>
     </section>
 
-    <!-- ============ 10 ============ -->
-    <section class="step" id="k10">
+    <!-- ============ 11 ============ -->
+    <section class="step" id="k11">
       <div class="step-head">
-        <span class="badge">10</span>
+        <span class="badge">11</span>
         <h2>Gdy coś nie działa</h2>
       </div>
       <div class="step-body">
+
+        <h3>Domeny, DNS i certyfikaty</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Objaw</th><th>Przyczyna</th><th>Co zrobić</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>ERR_TOO_MANY_REDIRECTS</code></td>
+                <td>tryb SSL/TLS ustawiony na Flexible</td>
+                <td>Cloudflare → SSL/TLS → Overview → <strong>Full (strict)</strong>; przeładuj z pustym cache</td>
+              </tr>
+              <tr>
+                <td>Certyfikat się nie wystawia, strona na HTTP</td>
+                <td>proxy Cloudflare włączone przed pierwszym wystawieniem</td>
+                <td>przełącz chmurkę na szarą, zrób Redeploy w Coolify, poczekaj 2 min, potem wróć do proxy</td>
+              </tr>
+              <tr>
+                <td><code>502 Bad Gateway</code></td>
+                <td>brak portu w polu Domains</td>
+                <td>wpisz <code>https://bi.domena.pl:3000</code> i <code>https://rozliczenia.domena.pl:8000</code>, potem Redeploy</td>
+              </tr>
+              <tr>
+                <td>Cloudflare pokazuje błąd 521 / 522</td>
+                <td>port 80 lub 443 zamknięty na firewallu</td>
+                <td><code>sudo ufw allow 80/tcp &amp;&amp; sudo ufw allow 443/tcp</code>; sprawdź też firewall u dostawcy</td>
+              </tr>
+              <tr>
+                <td>Błąd 524 przy wgrywaniu pliku</td>
+                <td>limit 100 s na proxy Cloudflare</td>
+                <td>używaj <code>mode=async</code> (workflow już tak robi); dla ręcznego <code>curl</code> dodaj <code>-F "mode=async"</code></td>
+              </tr>
+              <tr>
+                <td><code>dig</code> zwraca 104.21.x / 172.67.x</td>
+                <td>proxy jest włączone</td>
+                <td>to normalne po kroku 4.8; jeśli certyfikat jeszcze nie istnieje — wyłącz proxy</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Pipeline i dane</h3>
         <div class="table-scroll">
           <table>
             <thead><tr><th>Objaw</th><th>Przyczyna</th><th>Co zrobić</th></tr></thead>
@@ -1000,20 +1262,30 @@ gunzip -c kopia_20260831.sql.gz \
               <tr>
                 <td>n8n dostaje 401</td>
                 <td>niezgodny klucz API</td>
-                <td>porównaj wartość w poświadczeniu Header Auth ze zmienną <code>INGEST_API_KEY</code>; nazwa nagłówka musi brzmieć dokładnie <code>X-API-Key</code></td>
+                <td>porównaj wartość w poświadczeniu Header Auth ze zmienną <code>INGEST_API_KEY</code>; nazwa nagłówka to dokładnie <code>X-API-Key</code></td>
               </tr>
               <tr>
-                <td>status <code>failed</code>, komunikat „Brak wymaganych arkuszy”</td>
+                <td>n8n dostaje 404 na <code>/files/…</code></td>
+                <td>zła zmienna <code>INGEST_HOST</code></td>
+                <td>w Variables wpisz samą nazwę hosta, bez <code>https://</code> i bez ukośnika na końcu</td>
+              </tr>
+              <tr>
+                <td><code>rows_stock: 0</code> i ostrzeżenie o arkuszu Stok</td>
+                <td>plik za okres sprzed 2026 M07</td>
+                <td>to normalne — arkusz Stok nadawca dodał później; rozliczenie wczytuje się w całości, brakuje tylko danych magazynowych za ten miesiąc</td>
+              </tr>
+              <tr>
+                <td>status <code>failed</code>, „Brak wymaganych arkuszy”</td>
                 <td>nadawca zmienił nazwę karty</td>
                 <td>plik jest w archiwum, baza nietknięta — dopisz nazwę w <code>REQUIRED_SHEETS</code> w <code>parser.py</code> i wgraj ponownie</td>
               </tr>
               <tr>
-                <td>status <code>processed</code>, ale <code>checks_failed &gt; 0</code></td>
+                <td>przetworzone, ale <code>checks_failed &gt; 0</code></td>
                 <td>arytmetyka w pliku się nie spina</td>
                 <td>dane są w bazie; karta 4.3 pokazuje, które równanie i o ile — to materiał do rozmowy z nadawcą, nie błąd systemu</td>
               </tr>
               <tr>
-                <td>plik został pominięty jako <code>duplicate</code>, a to korekta</td>
+                <td>plik pominięty jako <code>duplicate</code>, a to korekta</td>
                 <td>identyczna zawartość pliku</td>
                 <td>jeśli treść naprawdę się różni, skrót będzie inny i powstanie rewizja; przy identycznym pliku użyj <code>--force</code> w CLI</td>
               </tr>
@@ -1025,12 +1297,12 @@ gunzip -c kopia_20260831.sql.gz \
               <tr>
                 <td>brak trendów miesiąc do miesiąca</td>
                 <td>tylko jeden okres w bazie</td>
-                <td>wczytaj miesiące historyczne poleceniem <code>backfill</code> (krok 08)</td>
+                <td>wczytaj miesiące historyczne poleceniem <code>backfill</code> (krok 09)</td>
               </tr>
               <tr>
                 <td>mail dotarł, workflow się nie uruchomił</td>
                 <td>filtr nadawcy odrzucił wiadomość</td>
-                <td>sprawdź zmienną <code>NADAWCA_ROZLICZEN</code> i zakładkę Executions w n8n</td>
+                <td>sprawdź zmienną <code>NADAWCA_ROZLICZEN</code> i zakładkę Executions w n8n Cloud</td>
               </tr>
             </tbody>
           </table>
@@ -1051,10 +1323,10 @@ gunzip -c kopia_20260831.sql.gz \
     <div class="closing">
       <h2>Po wdrożeniu</h2>
       <p>
-        Od tego momentu proces jest bezobsługowy: mail przychodzi, n8n go wyłapuje, worker
-        sprawdza kwoty i ładuje dane, dbt przelicza modele, Metabase pokazuje aktualny obraz.
-        Ręcznie dotykasz systemu tylko wtedy, gdy przyjdzie alert — albo gdy chcesz wgrać
-        plik wcześniej niż zrobi to skrzynka.
+        Od tego momentu proces jest bezobsługowy: mail przychodzi, n8n Cloud go wyłapuje,
+        worker sprawdza kwoty i ładuje dane, dbt przelicza modele, Metabase pokazuje
+        aktualny obraz. Ręcznie dotykasz systemu tylko wtedy, gdy przyjdzie alert — albo
+        gdy chcesz wgrać plik wcześniej niż zrobi to skrzynka.
       </p>
       <p style="margin-bottom:0">
         Naturalne rozszerzenia na później: prognoza zapotrzebowania na podstawie kilku

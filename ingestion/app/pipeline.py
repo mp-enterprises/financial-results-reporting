@@ -39,6 +39,7 @@ class IngestResult:
     revisions: dict[str, int] = field(default_factory=dict)
     rows_sales: int = 0
     rows_stock: int = 0
+    warnings: list[str] = field(default_factory=list)
     checks: list[dict] = field(default_factory=list)
     dbt_status: str | None = None
     message: str | None = None
@@ -59,6 +60,7 @@ class IngestResult:
             "revisions": self.revisions,
             "rows_sales": self.rows_sales,
             "rows_stock": self.rows_stock,
+            "warnings": self.warnings,
             "checks_total": len(self.checks),
             "checks_failed": len(self.failed_checks),
             "failed_checks": self.failed_checks,
@@ -178,6 +180,9 @@ def ingest_file(path: str | Path, *, source: str = "manual",
 
         result.rows_sales = stats.get("rows_sales", 0)
         result.rows_stock = stats.get("rows_stock", 0)
+        result.warnings = parsed.warnings
+        for w in parsed.warnings:
+            log.warning("%s: %s", file_name, w)
         result.revisions = stats.get("revisions", {})
         result.checks = checks
         result.status = "processed"

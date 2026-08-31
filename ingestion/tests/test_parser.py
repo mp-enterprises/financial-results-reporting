@@ -135,14 +135,62 @@ def test_przesuniecie_wierszy_nie_psuje_parsowania(tmp_path):
     assert len(p.sales_lines) == 306
 
 
-def test_brak_arkusza_konczy_sie_bledem(tmp_path):
+def test_brak_arkusza_stok_jest_dozwolony(tmp_path):
+    """Arkusz Stok nadawca dodał dopiero od 2026 M07 — starsze pliki go nie mają
+    i muszą się wczytać, tylko bez danych magazynowych."""
     dst = tmp_path / "bez_stoku.xlsx"
     shutil.copy(SAMPLE, dst)
     wb = load_workbook(dst)
     del wb["Stok"]
     wb.save(dst)
+
+    p = parse_workbook(dst)
+    assert p.stock_lines == []
+    assert p.has_stock is False
+    assert any("Stok" in w for w in p.warnings)
+    # rozliczenie musi się wczytać bez zmian
+    assert p.settlements["MAIN"].do_zaplaty == Decimal("60041.44380764045")
+    assert len(p.sales_lines) == 306
+
+
+def test_brak_arkusza_karta_konczy_sie_bledem(tmp_path):
+    """Karta i Raport są wymagane — bez nich nie ma czego ładować."""
+    dst = tmp_path / "bez_karty.xlsx"
+    shutil.copy(SAMPLE, dst)
+    wb = load_workbook(dst)
+    del wb["Karta"]
+    wb.save(dst)
     with pytest.raises(ParseError, match="Brak wymaganych arkuszy"):
         parse_workbook(dst)
+
+
+# --- plik z poprzedniego miesiąca (inna struktura: bez arkusza Stok) --------
+SAMPLE_06 = SAMPLE.parent / "Rozliczenie_2026M06_ZZMP1.xlsx"
+
+
+@pytest.mark.skipif(not SAMPLE_06.exists(), reason="brak pliku za 2026-06")
+def test_plik_czerwcowy_bez_stoku():
+    p = parse_workbook(SAMPLE_06)
+    assert p.partner_code == "ZZMP1"
+    assert (p.period_year, p.period_month) == (2026, 6)
+    assert set(p.settlements) == {"MAIN", "MJ"}
+    assert len(p.sales_lines) == 235
+    assert p.stock_lines == []
+    assert p.settlements["MAIN"].do_zaplaty == Decimal("63869.87921239117")
+    assert p.settlements["MJ"].do_zaplaty == Decimal("1479.2245031855782")
+    # w Karcie bez sekcji magazynowej te pola muszą zostać puste, nie wyzerowane
+    assert p.settlements["MAIN"].magazyn_wartosc is None
+    assert p.settlements["MAIN"].magazyn_sku is None
+
+
+@pytest.mark.skipif(not SAMPLE_06.exists(), reason="brak pliku za 2026-06")
+def test_arytmetyka_czerwca_sie_spina():
+    p = parse_workbook(SAMPLE_06)
+    for channel, s in p.settlements.items():
+        assert abs(s.fv_partnera_netto - s.kfv_netto - s.saldo_towaru) < Decimal("0.01"), channel
+        assert abs(s.saldo_towaru - s.fv_uslugowa - s.do_zaplaty) < Decimal("0.01"), channel
+    suma = sum(l.net_value for l in p.sales_lines)
+    assert abs(suma - p.raport_totals["net_value"]) < Decimal("0.01")
 
 
 def test_pusty_plik_konczy_sie_bledem(tmp_path):

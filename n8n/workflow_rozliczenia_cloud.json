@@ -1,0 +1,366 @@
+{
+  "name": "Rozliczenia partnerskie — n8n Cloud",
+  "nodes": [
+    {
+      "parameters": {
+        "postProcessAction": "read",
+        "downloadAttachments": true,
+        "format": "resolved",
+        "options": {
+          "customEmailConfig": "[\"UNSEEN\"]",
+          "forceReconnect": 60
+        }
+      },
+      "id": "imap-trigger",
+      "name": "Nowy mail (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [-620, 0],
+      "credentials": {
+        "imap": { "id": "IMAP_SKRZYNKA", "name": "Skrzynka rozliczeniowa" }
+      },
+      "notes": "Nasłuchuje nieprzeczytanych wiadomości. Filtr nadawcy jest w kolejnym węźle."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rozliczenie-reczne",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-reczny",
+      "name": "Webhook — uruchomienie ręczne",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-620, 180],
+      "webhookId": "rozliczenie-reczne",
+      "credentials": {
+        "httpHeaderAuth": { "id": "N8N_WEBHOOK_AUTH", "name": "Klucz webhooka" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "id": "nadawca",
+              "leftValue": "={{ $json.from }}",
+              "rightValue": "={{ $vars.NADAWCA_ROZLICZEN }}",
+              "operator": { "type": "string", "operation": "contains" }
+            },
+            {
+              "id": "ma-zalacznik",
+              "leftValue": "={{ Object.keys($binary || {}).length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filtr",
+      "name": "Czy to rozliczenie?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [-400, 60]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Wybiera pierwszy załącznik .xlsx z maila.\n// Rozliczenie zawiera dokładnie jeden plik Excel, ale klient pocztowy\n// potrafi doczepić np. podpis graficzny — dlatego filtrujemy po rozszerzeniu.\nconst wynik = [];\n\nfor (const item of $input.all()) {\n  const binarne = item.binary || {};\n  const klucze = Object.keys(binarne);\n\n  const excel = klucze.filter((k) => {\n    const nazwa = (binarne[k].fileName || '').toLowerCase();\n    return nazwa.endsWith('.xlsx') || nazwa.endsWith('.xlsm');\n  });\n\n  if (excel.length === 0) {\n    throw new Error(`Mail \"${item.json.subject}\" nie zawiera załącznika .xlsx.`);\n  }\n  if (excel.length > 1) {\n    console.warn(`Znaleziono ${excel.length} plików Excel; biorę pierwszy: ${binarne[excel[0]].fileName}`);\n  }\n\n  const klucz = excel[0];\n  wynik.push({\n    json: {\n      nazwa_pliku: binarne[klucz].fileName,\n      temat: item.json.subject || '',\n      nadawca: item.json.from || '',\n      data_maila: item.json.date || '',\n      message_id: item.json.messageId || item.json.id || '',\n    },\n    binary: { plik: binarne[klucz] },\n  });\n}\n\nreturn wynik;"
+      },
+      "id": "wyodrebnij",
+      "name": "Wyodrębnij załącznik Excel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-180, 60]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $vars.INGEST_HOST }}/ingest",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "parameterType": "formBinaryData", "name": "file", "inputDataFieldName": "plik" },
+            { "name": "source", "value": "email" },
+            { "name": "mode", "value": "async" },
+            {
+              "name": "source_reference",
+              "value": "={{ $json.message_id }} | {{ $json.nadawca }} | {{ $json.data_maila }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": { "response": { "neverError": true, "fullResponse": true } },
+          "retry": { "retry": { "maxTries": 3, "waitBetweenTries": 20000 } }
+        }
+      },
+      "id": "wyslij",
+      "name": "Prześlij plik (async)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [60, 60],
+      "credentials": {
+        "httpHeaderAuth": { "id": "INGEST_API_KEY", "name": "Klucz API ingest (X-API-Key)" }
+      },
+      "notes": "mode=async: worker odpowiada natychmiast kodem 202 i przetwarza plik w tle. Dzięki temu nie ma znaczenia limit 100 s na proxy Cloudflare."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.status }}",
+              "rightValue": "accepted",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "czy-przyjety",
+      "name": "Przyjęty do przetwarzania?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [280, 60],
+      "notes": "Odpowiedź 'duplicate' oznacza, że plik już był — ta ścieżka kończy przebieg bez alertu."
+    },
+    {
+      "parameters": { "amount": 20, "unit": "seconds" },
+      "id": "czekaj",
+      "name": "Odczekaj 20 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [500, -40],
+      "webhookId": "czekaj-na-przetworzenie"
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $vars.INGEST_HOST }}/files/{{ $('Prześlij plik (async)').item.json.body.file_sha256 }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "neverError": true, "fullResponse": true } }
+        }
+      },
+      "id": "sprawdz-status",
+      "name": "Sprawdź status pliku",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, -40],
+      "credentials": {
+        "httpHeaderAuth": { "id": "INGEST_API_KEY", "name": "Klucz API ingest (X-API-Key)" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.zakonczone }}",
+              "rightValue": "true",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "czy-gotowe",
+      "name": "Przetwarzanie zakończone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [940, -40],
+      "notes": "Jeśli jeszcze trwa — wraca do węzła oczekiwania. Przy typowym pliku wystarcza jedna pętla."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.body.udane }}",
+              "rightValue": "true",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "czy-ok",
+      "name": "Wszystko się zgadza?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1160, -40]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.EMAIL_POWIADOMIEN }}",
+        "subject": "=✅ Rozliczenie {{ $json.body.period }} załadowane ({{ $json.body.partner_code }})",
+        "emailFormat": "html",
+        "message": "=<h2>Rozliczenie przetworzone</h2>\n<table cellpadding=\"6\" style=\"border-collapse:collapse\">\n<tr><td><b>Partner</b></td><td>{{ $json.body.partner_code }}</td></tr>\n<tr><td><b>Okres</b></td><td>{{ $json.body.period }}</td></tr>\n<tr><td><b>Plik</b></td><td>{{ $json.body.file_name }}</td></tr>\n<tr><td><b>Status</b></td><td>{{ $json.body.status }}</td></tr>\n<tr><td><b>Kontrole kwot</b></td><td>wszystkie zdane</td></tr>\n</table>\n<p>Dashboard: <a href=\"https://{{ $vars.METABASE_HOST }}\">{{ $vars.METABASE_HOST }}</a></p>",
+        "options": {}
+      },
+      "id": "powiadom-ok",
+      "name": "Powiadom: sukces",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1380, -140],
+      "credentials": { "smtp": { "id": "SMTP", "name": "Poczta wychodząca" } }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.EMAIL_POWIADOMIEN }}",
+        "subject": "=⚠️ PROBLEM z rozliczeniem — wymaga sprawdzenia",
+        "emailFormat": "html",
+        "message": "=<h2 style=\"color:#b00\">Rozliczenie wymaga uwagi</h2>\n<p><b>Plik:</b> {{ $json.body.file_name }}</p>\n<p><b>Okres:</b> {{ $json.body.period }}</p>\n<p><b>Status:</b> {{ $json.body.status }}</p>\n<p><b>Komunikat:</b> {{ $json.body.message }}</p>\n<p><b>Nieudane kontrole kwot:</b> {{ $json.body.checks_failed }}</p>\n<pre style=\"background:#f4f4f4;padding:12px\">{{ JSON.stringify($json.body.failed_checks, null, 2) }}</pre>\n<p>Plik jest zachowany w archiwum na serwerze. Po wyjaśnieniu rozbieżności\nz nadawcą wgraj poprawioną wersję — utworzy nową rewizję.</p>",
+        "options": {}
+      },
+      "id": "powiadom-blad",
+      "name": "Powiadom: problem",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1380, 60],
+      "credentials": { "smtp": { "id": "SMTP", "name": "Poczta wychodząca" } }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 9 5-12 * *" }]
+        }
+      },
+      "id": "harmonogram",
+      "name": "Kontrola: czy rozliczenie dotarło",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-620, 400],
+      "notes": "Codziennie o 9:00 między 5. a 12. dniem miesiąca."
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $vars.INGEST_HOST }}/status/okres",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [{ "name": "miesiecy_wstecz", "value": "1" }]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "sprawdz-okres",
+      "name": "Czy okres jest w bazie?",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-400, 400],
+      "credentials": {
+        "httpHeaderAuth": { "id": "INGEST_API_KEY", "name": "Klucz API ingest (X-API-Key)" }
+      },
+      "notes": "Zastępuje węzeł Postgres: n8n Cloud nie ma dostępu do bazy w prywatnej sieci Dockera, więc pyta o to worker przez HTTPS."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.juz_jest }}",
+              "rightValue": "false",
+              "operator": { "type": "boolean", "operation": "false", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "czy-brakuje",
+      "name": "Brakuje?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-180, 400]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $vars.EMAIL_POWIADOMIEN }}",
+        "subject": "=⏰ Brak rozliczenia za {{ $json.oczekiwany_okres }}",
+        "emailFormat": "html",
+        "message": "=<p>Do systemu nie wpłynęło jeszcze rozliczenie za okres <b>{{ $json.oczekiwany_okres }}</b>.</p>\n<p>Jeśli mail dotarł, ale nie został przetworzony, sprawdź zakładkę Executions w n8n\nalbo wgraj plik ręcznie przez formularz na <a href=\"https://{{ $vars.INGEST_HOST }}\">{{ $vars.INGEST_HOST }}</a>.</p>",
+        "options": {}
+      },
+      "id": "powiadom-brak",
+      "name": "Powiadom: brak rozliczenia",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [60, 400],
+      "credentials": { "smtp": { "id": "SMTP", "name": "Poczta wychodząca" } }
+    }
+  ],
+  "connections": {
+    "Nowy mail (IMAP)": {
+      "main": [[{ "node": "Czy to rozliczenie?", "type": "main", "index": 0 }]]
+    },
+    "Webhook — uruchomienie ręczne": {
+      "main": [[{ "node": "Czy to rozliczenie?", "type": "main", "index": 0 }]]
+    },
+    "Czy to rozliczenie?": {
+      "main": [[{ "node": "Wyodrębnij załącznik Excel", "type": "main", "index": 0 }]]
+    },
+    "Wyodrębnij załącznik Excel": {
+      "main": [[{ "node": "Prześlij plik (async)", "type": "main", "index": 0 }]]
+    },
+    "Prześlij plik (async)": {
+      "main": [[{ "node": "Przyjęty do przetwarzania?", "type": "main", "index": 0 }]]
+    },
+    "Przyjęty do przetwarzania?": {
+      "main": [
+        [{ "node": "Odczekaj 20 s", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Odczekaj 20 s": {
+      "main": [[{ "node": "Sprawdź status pliku", "type": "main", "index": 0 }]]
+    },
+    "Sprawdź status pliku": {
+      "main": [[{ "node": "Przetwarzanie zakończone?", "type": "main", "index": 0 }]]
+    },
+    "Przetwarzanie zakończone?": {
+      "main": [
+        [{ "node": "Wszystko się zgadza?", "type": "main", "index": 0 }],
+        [{ "node": "Odczekaj 20 s", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wszystko się zgadza?": {
+      "main": [
+        [{ "node": "Powiadom: sukces", "type": "main", "index": 0 }],
+        [{ "node": "Powiadom: problem", "type": "main", "index": 0 }]
+      ]
+    },
+    "Kontrola: czy rozliczenie dotarło": {
+      "main": [[{ "node": "Czy okres jest w bazie?", "type": "main", "index": 0 }]]
+    },
+    "Czy okres jest w bazie?": {
+      "main": [[{ "node": "Brakuje?", "type": "main", "index": 0 }]]
+    },
+    "Brakuje?": {
+      "main": [
+        [{ "node": "Powiadom: brak rozliczenia", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "timezone": "Europe/Warsaw"
+  },
+  "tags": [{ "name": "rozliczenia" }]
+}
