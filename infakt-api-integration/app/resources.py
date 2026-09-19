@@ -64,6 +64,29 @@ def filtruj_po_okresie(rekordy: list[dict], pole: str, od: str, do: str) -> tupl
     return w_zakresie, bez_daty
 
 
+# Pole `source` w documents/costs.json, potwierdzone na żywo (konto produkcyjne,
+# 2026-09-17): wartość "ksef" oznacza koszt wczytany przez Krajowy System
+# e-Faktur, "infakt" — dodany ręcznie/inną drogą w panelu. Tylko koszty źródła
+# KSeF są uznawane za wiarygodne dla rozliczeń — patrz README.
+ZRODLO_KSEF = "ksef"
+
+
+def filtruj_zrodlo_ksef(koszty: list[dict]) -> list[dict]:
+    """Zwraca tylko koszty, których pole `source` == "ksef"."""
+    return [k for k in koszty if k.get("source") == ZRODLO_KSEF]
+
+
+# invoices.json nie ma pola `source` — obecność numeru KSeF w polu `ksef_number`
+# (potwierdzone na żywo, 2026-09-18) jest tu odpowiednikiem: niepuste oznacza,
+# że faktura została zaraportowana do Krajowego Systemu e-Faktur.
+POLE_KSEF_FAKTURY = "ksef_number"
+
+
+def filtruj_ksef_faktury(faktury: list[dict]) -> list[dict]:
+    """Zwraca tylko faktury przychodowe z niepustym numerem KSeF."""
+    return [f for f in faktury if f.get(POLE_KSEF_FAKTURY)]
+
+
 def pobierz_zasob(
     client: InfaktClient, nazwa: str, params: dict[str, Any] | None = None
 ) -> list[dict]:

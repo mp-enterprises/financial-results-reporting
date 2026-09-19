@@ -8,6 +8,7 @@ from app.resources import (
     POLA_DATY,
     WSZYSTKIE_ZASOBY,
     filtruj_po_okresie,
+    filtruj_zrodlo_ksef,
     pobierz_zasob,
     w_okresie,
     zbuduj_filtr_daty,
@@ -71,3 +72,24 @@ def test_pola_daty_pokrywaja_wszystkie_faktury_i_koszty():
 
     for nazwa in {**FAKTURY_PRZYCHODOWE, **KOSZTY}:
         assert nazwa in POLA_DATY
+
+
+def test_filtruj_zrodlo_ksef_przepuszcza_tylko_ksef():
+    koszty = [
+        {"id": 1, "source": "ksef"},
+        {"id": 2, "source": "infakt"},
+        {"id": 3},
+    ]
+    assert filtruj_zrodlo_ksef(koszty) == [{"id": 1, "source": "ksef"}]
+
+
+def test_filtruj_ksef_faktury_przepuszcza_tylko_z_numerem_ksef():
+    from app.resources import filtruj_ksef_faktury
+
+    faktury = [
+        {"id": 1, "ksef_number": "ABC-123"},
+        {"id": 2, "ksef_number": None},
+        {"id": 3, "ksef_number": ""},
+        {"id": 4},
+    ]
+    assert filtruj_ksef_faktury(faktury) == [{"id": 1, "ksef_number": "ABC-123"}]

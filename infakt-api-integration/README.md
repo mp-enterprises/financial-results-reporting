@@ -42,7 +42,16 @@ filtruj_po_okresie — zawęża invoices/costs do okresu po stronie klienta
 (serwer jest zawodny, patrz „Ograniczenia”)
         │
         ▼
-denylist.py — wyklucza koszty od dostawców z listy NIP-ów
+filtrowanie po źródle KSeF (obie strony — przychód i koszty):
+  koszty:   filtruj_zrodlo_ksef — tylko rekordy z polem `source == "ksef"`
+  faktury:  filtruj_ksef_faktury — tylko rekordy z niepustym `ksef_number`
+  (rekordy spoza KSeF, np. `source == "infakt"` albo faktura bez numeru
+  KSeF, są odrzucane — patrz „Ograniczenia”)
+        │
+        ▼
+denylist.py — wyklucza tę samą listę NIP-ów z obu stron:
+  koszty:   po NIP sprzedawcy (dostawcy)
+  faktury:  po NIP klienta (nabywcy)
   (filtrowanie PO STRONIE KLIENTA — patrz „Ograniczenia” niżej)
         │
         ▼
@@ -50,9 +59,9 @@ aggregator.py — liczy: zysk/strata = przychód − (koszty + podatek + ZUS)
         │
         ▼
 storage.py — zapis do JSON:
-  data/raw/<okres>/invoices_raw.json     (invoices, bez filtra okresu)
-  data/raw/<okres>/invoices.json         (invoices, w okresie)
-  data/raw/<okres>/costs_in_period.json  (JEDYNY plik kosztów: w okresie + po denyliście)
+  data/raw/<okres>/invoices_raw.json     (invoices, bez żadnych filtrów)
+  data/raw/<okres>/invoices.json         (invoices: w okresie + tylko KSeF + po denyliście NIP klienta)
+  data/raw/<okres>/costs_in_period.json  (JEDYNY plik kosztów: w okresie + tylko źródło KSeF + po denyliście)
   data/raw/<okres>/insurance_fees.json, income_taxes.json, saf_v7_files.json
                                           (niefiltrowane po okresie — patrz „Ograniczenia”)
   data/summary/<okres>.json              (podsumowanie/agregat)
@@ -233,11 +242,13 @@ nie tylko przypuszczenia.
    `insurance_fees` to cała historia konta (18 identycznych rekordów w każdym
    z trzech testowanych miesięcy). Podsumowanie oznacza to jawnie polem
    `"zus_podatki_jpk_bez_filtrowania_okresu": true`.
-9. **Pole z NIP sprzedawcy w kosztach** (`app/denylist.py`,
-   `POLA_NIP_SPRZEDAWCY`) wciąż oparte na nieoficjalnym Go SDK, nie
-   zweryfikowane na żywo (denylista nie była ustawiona podczas testu
-   produkcyjnego). Rekordy bez rozpoznanego pola są fail-open — patrz
-   `kosztow_bez_rozpoznanego_nip` w podsumowaniu.
+9. **Pole z NIP sprzedawcy w kosztach** — potwierdzone na żywo (konto
+   produkcyjne, 2026-09-17): to `seller_tax_code` (nie
+   `seller_tax_code_number`, który był tylko przypuszczeniem z nieoficjalnego
+   Go SDK; oba pola są nadal na liście `POLA_NIP_SPRZEDAWCY`, `seller_tax_code`
+   po prostu wygrywa jako pierwsze rzeczywiście obecne). Rekordy bez
+   rozpoznanego pola są fail-open — patrz `kosztow_bez_rozpoznanego_nip` w
+   podsumowaniu.
 10. **Rozróżnienie KPiR/ryczałt (amortyzacja) i status
     zapłacone/niezapłacone/robocze** — panel Statystyki to rozróżnia, ten
     moduł sumuje wszystkie pobrane rekordy bez rozbicia po statusie (pole
@@ -246,6 +257,26 @@ nie tylko przypuszczenia.
 11. **Wykluczanie po NIP jest realizowane po stronie klienta**, nie jako
     natywny filtr API — świadoma decyzja z oceny wykonalności, nie
     ograniczenie tego kodu.
+12. **Pole `source` w `documents/costs.json`** — potwierdzone na żywo
+    (2026-09-17): wartość `"ksef"` (koszt wczytany przez Krajowy System
+    e-Faktur) vs `"infakt"` (dodany inną drogą w panelu). Od 2026-09-17
+    `costs_in_period.json` zawiera wyłącznie koszty źródła KSeF — koszty
+    `"infakt"` są liczone i widoczne w podsumowaniu jako
+    `kosztow_odrzuconych_zrodlo_nie_ksef`, ale nie wchodzą do
+    `koszty`/`zysk_strata`.
+13. **`invoices.json` nie ma pola `source`** — jego odpowiednikiem jest
+    `ksef_number` (potwierdzone na żywo, 2026-09-18): niepusty oznacza, że
+    faktura trafiła do KSeF. Od 2026-09-18 `invoices.json` zawiera wyłącznie
+    faktury z niepustym `ksef_number`; te bez numeru KSeF są odrzucone i
+    zliczone w podsumowaniu jako `faktur_odrzuconych_zrodlo_nie_ksef`
+    (per zasób).
+14. **Denylist stosowana też do faktur przychodowych, po NIP klienta**
+    (`client_tax_code`, potwierdzone na żywo, 2026-09-18) — ta sama lista
+    `INFAKT_SUPPLIER_DENYLIST_NIP` wyklucza teraz dany podmiot zarówno jako
+    dostawcę kosztów, jak i jako nabywcę na fakturze sprzedażowej. Odrzucone
+    rekordy są zliczone jako `faktur_odrzuconych_denylist` (per zasób), z tym
+    samym fail-open dla nierozpoznanego NIP co przy kosztach
+    (`faktur_bez_rozpoznanego_nip_klienta`).
 
 Żaden z powyższych punktów nie blokuje działania kodu — wszystkie awarie są
 albo jawnym błędem (`InfaktApiError` z treścią odpowiedzi), albo policzalnym

@@ -23,4 +23,5 @@ def koszt_przykladowy() -> dict:
         "gross_price": 50000,
         "seller_tax_code_number": "111-222-33-44",
         "issue_date": "2026-09-10",
+        "source": "ksef",
     }

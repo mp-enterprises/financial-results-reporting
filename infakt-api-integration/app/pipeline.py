@@ -11,11 +11,13 @@ from typing import Any
 from .aggregator import zbuduj_podsumowanie
 from .client import InfaktClient
 from .config import settings
-from .denylist import odfiltruj_koszty, wczytaj_denylist
+from .denylist import odfiltruj_faktury, odfiltruj_koszty, wczytaj_denylist
 from .resources import (
     FAKTURY_PRZYCHODOWE,
     POLA_DATY,
+    filtruj_ksef_faktury,
     filtruj_po_okresie,
+    filtruj_zrodlo_ksef,
     pobierz_zasob,
     zbuduj_filtr_daty,
 )
@@ -63,18 +65,33 @@ def uruchom_pobieranie(
     # o właściwe zawężenie do okresu dbamy zawsze też po stronie klienta
     # (filtruj_po_okresie), więc wynik jest poprawny niezależnie od tego, czy
     # serwer go uwzględnił.
+    denylist = wczytaj_denylist(settings.supplier_denylist_nip)
+
     faktury_surowe = {nazwa: pobierz_zasob(client, nazwa, params=filtr) for nazwa in FAKTURY_PRZYCHODOWE}
     faktury = {}
     bez_daty_faktur = {}
+    faktur_odrzuconych_zrodlo: dict[str, int] = {}
+    faktur_odrzuconych_denylist: dict[str, int] = {}
+    faktur_bez_rozpoznanego_nip_klienta: dict[str, int] = {}
     for nazwa, rekordy in faktury_surowe.items():
         w_okresie, bez_daty = filtruj_po_okresie(rekordy, POLA_DATY[nazwa], od, do)
-        faktury[nazwa] = w_okresie
         bez_daty_faktur[nazwa] = bez_daty
+        # Tylko faktury wystawione przez KSeF są uznawane za wiarygodne dla
+        # rozliczeń — analogicznie do kosztów, patrz README.
+        w_okresie_ksef = filtruj_ksef_faktury(w_okresie)
+        faktur_odrzuconych_zrodlo[nazwa] = len(w_okresie) - len(w_okresie_ksef)
+        dopuszczone, odrzucone_faktury, bez_nip_klienta = odfiltruj_faktury(w_okresie_ksef, denylist)
+        faktury[nazwa] = dopuszczone
+        faktur_odrzuconych_denylist[nazwa] = len(odrzucone_faktury)
+        faktur_bez_rozpoznanego_nip_klienta[nazwa] = bez_nip_klienta
 
     koszty_surowe = pobierz_zasob(client, "costs", params=filtr)
     koszty_w_okresie, koszty_bez_daty = filtruj_po_okresie(koszty_surowe, POLA_DATY["costs"], od, do)
-    denylist = wczytaj_denylist(settings.supplier_denylist_nip)
-    koszty, odrzucone, bez_nip = odfiltruj_koszty(koszty_w_okresie, denylist)
+    # Tylko koszty wczytane przez KSeF są uznawane za wiarygodne dla rozliczeń
+    # — patrz README, sekcja "Filtrowanie po źródle (KSeF)".
+    koszty_ksef = filtruj_zrodlo_ksef(koszty_w_okresie)
+    koszty_odrzucone_zrodlo = len(koszty_w_okresie) - len(koszty_ksef)
+    koszty, odrzucone, bez_nip = odfiltruj_koszty(koszty_ksef, denylist)
 
     # Pole daty dla ZUS/podatku dochodowego/JPK V7 nie jest potwierdzone —
     # te trzy zasoby NIE są filtrowane po stronie klienta (patrz README).
@@ -99,10 +116,14 @@ def uruchom_pobieranie(
         {
             "okres": okres,
             "srodowisko": client.environment,
+            "kosztow_odrzuconych_zrodlo_nie_ksef": koszty_odrzucone_zrodlo,
             "kosztow_odrzuconych_denylist": len(odrzucone),
             "kosztow_bez_rozpoznanego_nip": bez_nip,
             "kosztow_bez_rozpoznanej_daty": koszty_bez_daty,
             "faktur_bez_rozpoznanej_daty": bez_daty_faktur,
+            "faktur_odrzuconych_zrodlo_nie_ksef": faktur_odrzuconych_zrodlo,
+            "faktur_odrzuconych_denylist": faktur_odrzuconych_denylist,
+            "faktur_bez_rozpoznanego_nip_klienta": faktur_bez_rozpoznanego_nip_klienta,
             "zus_podatki_jpk_bez_filtrowania_okresu": True,
         }
     )
