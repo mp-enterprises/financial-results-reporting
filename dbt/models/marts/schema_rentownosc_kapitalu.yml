@@ -1,0 +1,38 @@
+version: 2
+
+# Osobny plik, żeby zmiany w tej metryce nie dotykały schema.yml pozostałych modeli.
+
+models:
+  - name: mart_rentownosc_kapitalu
+    description: >
+      Roczna stopa zwrotu z zainwestowanego kapitału per partner × okres. Zysk netto
+      (zarobek_partnera) pomniejszony o stałe koszty administracyjne, odniesiony do
+      kapitału zamrożonego w towarze przez czas dostawy i sprzedaży (kapital_w_obiegu =
+      koszt towaru × czas zamrożenia), z osobnym kosztem kapitału wg stopy dyskontowej.
+      Założenia to zmienne rk_* z nagłówka modelu; ich wartości zapisane są w każdym wierszu.
+    columns:
+      - name: koszt_towaru
+        description: obrot_netto − zysk_ze_sprzedazy (oba kanały) — kapitał, który wrócił sprzedażą w okresie.
+        data_tests: [not_null]
+      - name: czas_zamrozenia_mies
+        description: opóźnienie dostawy + okno sprzedaży / 2 (domyślnie 2 + 6/2 = 5 mies.).
+        data_tests: [not_null]
+      - name: koszty_stale
+        description: Koszty administracyjne miesiąca × udział partnera w koszcie towaru.
+        data_tests: [not_null]
+      - name: zysk_po_kosztach_stalych
+        description: zysk_netto − koszty_stale.
+        data_tests: [not_null]
+      - name: roic_roczny
+        description: >
+          GŁÓWNA METRYKA. (zysk netto − koszty stałe) × 12 / kapital_w_obiegu.
+          NULL, gdy koszt towaru w okresie ≤ 0.
+      - name: roic_ekonomiczny_roczny
+        description: Jak roic_roczny, ale po odjęciu kosztu kapitału (stopa dyskontowa).
+      - name: roic_roczny_wg_magazynu
+        description: >
+          Kontrola: ten sam zysk odniesiony do rzeczywistej wartości magazynu.
+          Tylko okresy z arkuszem Stok (od 2026-M07); nie uwzględnia towaru w drodze.
+    data_tests:
+      - dbt_unique_combination:
+          columns: ['partner_id', 'period_id']
